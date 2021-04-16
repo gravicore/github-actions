@@ -1,0 +1,13 @@
+name: 'Gravicore GitHub Actions'
+description: 'Runs Docker Image via GitHub Actions.'
+author:  'Gravicore DevOps Team <benjamin.chung@gravicore.io>'
+branding:
+  icon: 'cloud'
+  color: 'purple'
+inputs:
+  actions_command:
+    description: 'GitHub actions commands to execute'
+    required: true
+runs:
+  using: 'docker'
+  image: './Dockerfile'
