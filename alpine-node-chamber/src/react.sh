@@ -77,7 +77,7 @@ function reactPublishS3 {
   export ${chamberOutput}
   export CHAMBER_S3_CDN_BUCKET_ID=`printenv ${CHAMBER_S3_CDN_BUCKET_ID}`
 
-  awsOutput=$(aws s3 sync ${BUILD_DIR} s3://${CHAMBER_S3_CDN_BUCKET_ID}/ --acl "public-read" --delete)
+  awsOutput=$(aws s3 sync ${BUILD_DIR} s3://${CHAMBER_S3_CDN_BUCKET_ID}/ --delete)
   awsExitCode=${?}
   
   # Exit code of 0 indicates success. Print the output and exit.
