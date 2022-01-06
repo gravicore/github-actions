@@ -1,0 +1,39 @@
+name: "maven-build"
+on:
+  workflow_call:
+    inputs:
+      MVN_RUN:
+        required: true
+        type: string
+      JAVA_VERSION:  
+        required: true
+        type: number
+env:
+  lambda_load_artifact_script: mkdir dist && cp java/*/target/*.jar dist
+  MVN_RUN: ${{ inputs.MVN_RUN }}
+  JAVA_VERSION: ${{ inputs.JAVA_VERSION }}  maven-build-scan_v210902_dev:    
+    name: "Compile Maven Project"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: '${{ env.JAVA_VERSION }}'
+      - name: Cache Maven
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build with Maven
+        run: ${{ env.MVN_RUN }}
+      - name: Move files to dist folder
+        shell: bash
+        run: ${{ env.lambda_load_artifact_script }}
+      - name: Upload Project Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: project-artifacts
+          path: dist/*.jar

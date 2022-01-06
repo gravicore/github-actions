@@ -1,0 +1,69 @@
+name: "python-veracode-branch"
+on:
+  workflow_call:
+    inputs:                ## inputs if "required" MUST be in caller workflow
+      VERACODE_APP:
+        required: true
+        type: string
+      DEPLOYMENT_STAGE:    ## stg, prd
+        required: true
+        type: string
+      REPOSITORY_NAME:
+        required: true
+        type: string
+    secrets:
+      VERACODE_API_ID:
+        required: true
+      VERACODE_API_KEY:
+        required: true
+env:
+  VERACODE_APP: ${{ inputs.VERACODE_APP }}
+  DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
+  REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}
+jobs:
+  veracode_sast_upload:
+    name: Veracode SAST Scan
+    if: ${{ (github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    steps:    
+      - name: Checkout Stg
+        if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+      - name: Checkout Prd
+        if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}      
+        uses: actions/checkout@v2
+      - name: Prepare Artifacts
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
+        shell: bash
+        run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip python '*.py'
+      - name: Gather time stamp
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
+        run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+      - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: '${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          createsandbox: 'true'
+          sandboxname: '${{ github.event.workflow_run.head_branch }}'
+          exclude: ''
+          include: '*'
+          criticality: 'High'
+          appname: '${{ env.VERACODE_APP }}'
+      - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: '${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          createsandbox: 'true'
+          sandboxname: 'main'
+          exclude: ''
+          include: '*'
+          criticality: 'High'
+          appname: '${{ env.VERACODE_APP }}'
