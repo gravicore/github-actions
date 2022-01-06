@@ -1,0 +1,86 @@
+name: "versioning-upload"
+on:
+  workflow_call:
+    inputs:                ## inputs if "required" MUST be in caller workflow
+      AWS_DEFAULT_REGION:  ## #us-east-1
+        required: true
+        type: string
+      DEPLOYMENT_STAGE:    ## stg, prd
+        required: true
+        type: string
+      NAMESPACE:           ## cel
+        required: true
+        type: string
+      ENVIRONMENT:         # srv, client, bp
+        required: true
+        type: string
+    secrets:
+env: 
+  DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
+  AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }} 
+  NAMESPACE: ${{ inputs.NAMESPACE }} 
+  ENVIRONMENT: ${{ inputs.ENVIRONMENT }} 
+jobs:
+  bump-version_v211012_prd:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    name: Bump Version
+    steps:
+      - uses: actions/checkout@v2
+      - name: Bump version and push tag
+        id: tag_version
+        uses: mathieudutour/github-tag-action@v5.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: minor
+          release_branches: main
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.tag_version.outputs.new_tag }}
+          name: ${{ steps.tag_version.outputs.new_tag }}
+          body: ${{ steps.tag_version.outputs.changelog }}
+      - name: Gather tag outputs
+        run: echo "versioning_new_tag=${{ steps.tag_version.outputs.new_tag }}" >> $GITHUB_ENV
+      - name: artifact version tag
+        run:  echo "versioning_new_tag=${{ steps.tag_version.outputs.new_tag }}" >> version_tag.txt
+      - name: Upload Project Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: project-artifacts
+          path: version_tag.txt
+
+  upload-s3_v211012_prd:
+    name: Artifacts Upload S3
+    needs: bump-version_v211012_prd
+    runs-on: ubuntu-latest
+    container: gravicore/alpine-node-aws-chamber
+    steps:
+      - name: Download Project Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: project-artifacts
+      - name: Variablize version tag
+        run: cat version_tag.txt >> $GITHUB_ENV
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: install zip
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
+        run: apk add zip
+      - name: Prepare Artifacts
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}      
+        run: |
+          zip -r ${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}_${{ env.versioning_new_tag }}_$(echo ${GITHUB_SHA} | cut -c1-8)_${{ github.run_id }}.zip python '*.py'
+          mkdir dist && mv *.zip dist
+      - name: Configure AWS credentials from Account
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.PRD_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.PRD_AWS_ACCESS_KEY_SECRET}}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+      - name: Publish to S3
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
+        run: |
+          export $(chamber exec $NAMESPACE-$ENVIRONMENT-$DEPLOYMENT_STAGE -- env | grep -e CICD_ARTIFACTS_BUCKET_ID)
+          aws s3 cp ./dist/* s3://$CICD_ARTIFACTS_BUCKET_ID/artifacts_github/${{ github.event.repository.name }}/
