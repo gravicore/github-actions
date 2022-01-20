@@ -1,0 +1,150 @@
+name: scheduled-veracode-scan-prd   ### this workflow is for policy scans without the need to promote
+on:
+  workflow_call:
+    inputs:                   ## inputs if "required" MUST be in caller workflow
+      VERACODE_APP:
+        required: true
+        type: string
+      VERACODE_CRITICALITY:   ##High
+        required: true
+        type: string
+      VERACODE_EXCLUDE:       #
+        required: true
+        type: string
+      VERACODE_INCLUDE:       # *
+        required: true
+        type: string
+      PYTHON_INCLUDE:
+        required: false
+        type: boolean
+      JAVA_INCLUDE:
+        required: false
+        type: boolean
+      REACT_ANGULAR_INCLUDE:
+        required: false
+        type: boolean
+      MVN_RUN: # to be added to caller workflow example - mvn clean package -f java
+        required: false
+        type: string
+      DEPLOYMENT_STAGE: 
+        required: false
+        type: string
+      REPOSITORY_NAME: 
+        required: false
+        type: string
+    secrets:
+      VERACODE_API_ID:
+        required: true
+      VERACODE_API_KEY:
+        required: true
+env:
+  VERACODE_APP: ${{ inputs.VERACODE_APP }}
+  lambda_load_artifact_script: mkdir dist && cp java/*/target/*.jar dist
+  lambda_move_artifact_script: mkdir dist && cp *.jar dist
+  MVN_RUN: ${{ inputs.MVN_RUN }}
+
+jobs:
+  Veracode-SAST-Scan-Python:
+    name: SAST Scan Python
+    runs-on: ubuntu-latest
+    if: inputs.PYTHON_INCLUDE == true
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: create folder dist
+        run: mkdir dist
+      - name: install zip
+        run: sudo apt-get install zip
+      - name: download veracode zip script
+        run: wget https://raw.githubusercontent.com/gravicore/github-actions/GDEV-219-create-reusable-workflow-for-veracode-main-scan/veracode.py
+      - name: create-python-archive
+        shell: bash
+        run: |
+         python veracode.py
+         ls -a
+         mv veracode_static_sast* dist/
+      - name: Branch Name Var
+        run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
+      - name: Gather time stamp
+        run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+      - name: Setup Java
+        uses: actions/setup-java@v1 # Make java accessible on path so the uploadandscan action can run.
+        with: 
+          java-version: '8'
+      - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: 'dist/'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          exclude: '${{ inputs.VERACODE_EXCLUDE }}'
+          include: '${{ inputs.VERACODE_INCLUDE }}'
+          criticality: '${{ inputs.VERACODE_CRITICALITY }}'
+          appname: '${{ env.VERACODE_APP }}'
+
+  Veracode-SAST-Scan-Java:    
+    name: SAST Scan Java
+    runs-on: ubuntu-latest
+    if: inputs.JAVA_INCLUDE == true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK 8
+        uses: actions/setup-java@v1
+        with:
+          java-version: '8'
+      - name: Cache Maven
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build with Maven
+        run: ${{ env.MVN_RUN }}
+      - name: Move files to dist folder
+        shell: bash
+        run: ${{ env.lambda_load_artifact_script }}
+      - name: Gather time stamp
+        run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+      - name: Branch Name Var
+        run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
+      - name: Setup Java
+        uses: actions/setup-java@v1 # Make java accessible on path so the uploadandscan action can run.
+        with: 
+          java-version: '8'
+      - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: 'dist/'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          exclude: '${{ inputs.VERACODE_EXCLUDE }}'
+          include: '${{ inputs.VERACODE_INCLUDE }}'
+          criticality: '${{ inputs.VERACODE_CRITICALITY }}'
+          appname: '${{ env.VERACODE_APP }}'
+
+  Veracode-SAST-Scan-React:    
+    name: SAST Scan React
+    runs-on: ubuntu-latest
+    if: inputs.REACT_ANGULAR_INCLUDE == true
+    steps:    
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Prepare Artifacts
+        shell: bash
+        run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
+      - name: Gather time stamp
+        run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+      - name: Branch Name Var
+        run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
+      - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: '${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          exclude: '${{ inputs.VERACODE_EXCLUDE }}'
+          include: '${{ inputs.VERACODE_INCLUDE }}'
+          criticality: '${{ inputs.VERACODE_CRITICALITY }}'
+          appname: '${{ env.VERACODE_APP }}'

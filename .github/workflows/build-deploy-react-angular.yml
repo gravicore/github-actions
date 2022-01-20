@@ -1,0 +1,248 @@
+name: "build-deploy-react-angular"
+on:
+  workflow_call:
+    inputs:                          ## inputs if "required" MUST be in caller workflow
+      DEPLOYMENT_STAGE:                   ## dev, stg, or prd
+        required: true
+        type: string
+      ENVIRONMENT_TYPE:              ## development, staging, or production
+        required: true
+        type: string
+      ENVIRONMENT_PREFIX:            ## cel-borrower, cel-srv
+        required: true
+        type: string
+      AWS_DEFAULT_REGION:            ## us-east-1
+        required: true
+        type: string
+      NODE_VERSION:                  ## 14
+        required: true
+        type: string
+      REACT_INCLUDE:                 # true/false
+        required: false
+        type: boolean
+      ANGULAR_INCLUDE:               # true/false
+        required: false
+        type: boolean
+      EMBED_CONFIG_CHAMBER:
+        required: true
+        type: string
+      EMBED_CONFIG_RUN:
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_NAME:
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_PATH:
+        required: true
+        type: string
+      DOWNLOAD_ARTIFACT_NAME:
+        required: true
+        type: string
+      DOWNLOAD_ARTIFACT_PATH:
+        required: true
+        type: string
+      CDN_BUCKET:
+        required: true
+        type: string
+      SYNC_CDN:
+        required: true
+        type: string
+      CDN_DISTRO:
+        required: true
+        type: string
+      INVALIDATE_CLOUDFRONT:
+        required: true
+        type: string
+    secrets:
+      DEV_AWS_ACCESS_KEY_ID:
+        required: false
+      DEV_AWS_ACCESS_KEY_SECRET:
+        required: false
+      STG_AWS_ACCESS_KEY_ID:
+        required: false
+      STG_AWS_ACCESS_KEY_SECRET:
+        required: false
+      PRD_AWS_ACCESS_KEY_ID:
+        required: false
+      PRD_AWS_ACCESS_KEY_SECRET:
+        required: false
+      JIRA_CLIENT_ID:
+        required: true
+      JIRA_CLIENT_SECRET:
+        required: true
+env:
+  DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
+  ENVIRONMENT_TYPE: ${{ inputs.ENVIRONMENT_TYPE }}
+  ENVIRONMENT_PREFIX: ${{ inputs.ENVIRONMENT_PREFIX }}
+  AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }}
+  NODE_VERSION: ${{ inputs.NODE_VERSION }}
+  REACT_INCLUDE: ${{ inputs.REACT_INCLUDE }}
+  ANGULAR_INCLUDE: ${{ inputs.ANGULAR_INCLUDE }}
+  EMBED_CONFIG_CHAMBER: ${{ inputs.EMBED_CONFIG_CHAMBER }}
+  EMBED_CONFIG_RUN: ${{ inputs.EMBED_CONFIG_RUN }}
+  UPLOAD_ARTIFACT_NAME: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+  UPLOAD_ARTIFACT_PATH: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
+  DOWNLOAD_ARTIFACT_NAME: ${{ inputs.DOWNLOAD_ARTIFACT_NAME }}
+  DOWNLOAD_ARTIFACT_PATH: ${{ inputs.DOWNLOAD_ARTIFACT_PATH }}
+  CDN_BUCKET: ${{ inputs.CDN_BUCKET }}
+  SYNC_CDN: ${{ inputs.SYNC_CDN }}
+  CDN_DISTRO: ${{ inputs.CDN_DISTRO }}
+  INVALIDATE_CLOUDFRONT: ${{ inputs.INVALIDATE_CLOUDFRONT }}
+  build-test:
+    # START CONFIGURATION
+    name: Build And Test
+    env:
+      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
+      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
+    runs-on: ubuntu-latest
+    container: gravicore/alpine-node-aws-chamber
+    # END CONFIGURATION
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Parse Jira Keys from Commit
+        id: jira_keys
+        if: always()
+        uses: HighwayThree/jira-extract-issue-keys@master
+        with:
+          is-pull-request: ${{ github.event_name == 'pull_request' }}
+          parse-all-commits: ${{ github.event_name == 'push' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Format Jira Keys
+        run: |
+          JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
+          echo "${JIRA_KEYS}" >> .tmp_jira_keys
+          echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
+      - name: Echo Jira Keys
+        run: |
+          echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install Dependencies
+        run: yarn install
+      - name: Embed Config
+        if: ${{ ( env.REACT_INCLUDE == 'true') }}
+        run: |
+          mkdir -p src/environments
+          export DEPLOYMENT_STAGE=${{env.DEPLOYMENT_STAGE}}
+          chamber export $ENVIRONMENT_PREFIX-$DEPLOYMENT_STAGE ${{ inputs.EMBED_CONFIG_CHAMBER }}
+          ${{ inputs.EMBED_CONFIG_RUN }}
+      - name:  Build
+        run: |
+          CI=false yarn run build
+      - name: Confirm Build
+        run: |
+          echo "Building ${{ env.DEPLOY_STAGE }}..."
+          echo "github.event_name: ${{github.event_name}}"
+          echo "github.ref: ${{github.ref}}"
+          echo "BUILD_STATE=successful"  >> $GITHUB_ENV
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
+      - name: Failed Build
+        if: failure()
+        run: echo "BUILD_STATE=failed" >> $GITHUB_ENV
+      - name: Confirm Build State and Jira Key Values
+        if: always()
+        run: |
+          echo "BUILD_STATE: ${{env.BUILD_STATE}}"
+          echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      - name: Push Build Info to Jira
+        if: "${{ env.JIRA_KEYS != '' }}" 
+        id: push_build_info_to_jira
+        uses: HighwayThree/jira-upload-build-info@master
+        with:
+          pipeline-id: "${{ github.repository }} ${{ github.workflow }} ${{ env.DEPLOYMENT_STAGE }}"
+          client-id: "${{ secrets.JIRA_CLIENT_ID }}"
+          client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
+          cloud-instance-base-url: "https://celink.atlassian.net/"
+          issue-keys: "${{ env.JIRA_KEYS }}"
+          build-state: "${{ env.BUILD_STATE }}"
+          build-display-name: "${{ github.workflow }}: ${{ env.DEPLOYMENT_STAGE }}"
+          build-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+          build-ref-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+
+  deploy:
+    # START CONFIGURATION
+    name: Deploy
+    needs: Build And Test
+    env:
+      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
+      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
+    environment:
+      name: ${{ inputs.DEPLOYMENT_STAGE }}
+      #url:
+    runs-on: ubuntu-latest
+    container: gravicore/alpine-node-aws-chamber
+    # END CONFIGURATION
+    steps:
+      - name: Parse Jira Keys from Commit
+        id: jira_keys
+        if: always()
+        uses: HighwayThree/jira-extract-issue-keys@master
+        with:
+          is-pull-request: ${{ github.event_name == 'pull_request' }}
+          parse-all-commits: ${{ github.event_name == 'push' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Format Jira Keys
+        run: |
+          JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
+          echo "${JIRA_KEYS}" >> .tmp_jira_keys
+          echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
+      - name: Download Artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: ${{ inputs.DOWNLOAD_ARTIFACT_NAME }}
+          path: ${{ inputs.DOWNLOAD_ARTIFACT_PATH }}
+      - name: Configure AWS credentials from Account
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY}}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Publish to S3
+        run: |
+          export $(chamber exec $ENVIRONMENT_PREFIX-$DEPLOYMENT_STAGE -- env | grep -e ${{ inputs.CDN_BUCKET }})
+          aws s3 sync ${{ inputs.SYNC_CDN }}
+      - name: Invalidate Cloudfront
+        run: |
+          export $(chamber exec $ENVIRONMENT_PREFIX-$DEPLOYMENT_STAGE -- env | grep -e ${{ inputs.CDN_DISTRO }})
+          aws cloudfront create-invalidation --distribution-id ${{ inputs.INVALIDATE_CLOUDFRONT }}
+      - name: Successful Deployment
+        run: |
+          echo "Deploying to ${{env.DEPLOYMENT_STAGE}}..."
+          echo "github.event_name: ${{github.event_name}}"
+          echo "github.ref: ${{github.ref}}"
+          echo "DEPLOY_STATE=successful"  >> $GITHUB_ENV
+      - name: Failed Deployment
+        if: failure()
+        run: echo "DEPLOY_STATE=failed" >> $GITHUB_ENV
+      - name: Push Deployment Info to Jira
+        if: "${{ env.JIRA_KEYS != '' }}"
+        id: push_deployment_info_to_jira
+        uses: HighwayThree/jira-upload-deployment-info@master
+        with:
+          client-id: "${{ secrets.JIRA_CLIENT_ID }}"
+          client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
+          cloud-instance-base-url: "https://celink.atlassian.net/"
+          deployment-sequence-number: "${{ github.run_id }}"
+          update-sequence-number: "${{ github.run_id }}"
+          issue-keys: "${{ env.JIRA_KEYS }}"
+          display-name: "${{env.DEPLOYMENT_STAGE}} Run ID #${{github.run_id}}"
+          url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+          description: "${{env.DEPLOYMENT_STAGE}} Deployment"
+          last-updated: "${{github.event.head_commit.timestamp}}"
+          label: "${{env.DEPLOYMENT_STAGE}} Deployment Label"
+          state: "${{env.DEPLOY_STATE}}"
+          pipeline-id: "${{ github.repository }} ${{ github.workflow }}"
+          pipeline-display-name: ${{ github.workflow }} (#${{ github.run_number }})"
+          pipeline-url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+          environment-id: ${{env.DEPLOYMENT_STAGE}}
+          environment-display-name: ${{env.DEPLOYMENT_STAGE}}
+          environment-type: ${{env.ENVIRONMENT_TYPE}}
