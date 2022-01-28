@@ -80,7 +80,7 @@ jobs:
         with: 
           java-version: '8'
       - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
           filepath: 'dist/'
@@ -93,7 +93,7 @@ jobs:
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
       - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd' ) }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
           filepath: 'dist/'
