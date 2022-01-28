@@ -45,6 +45,7 @@ env:
   lambda_load_artifact_script: mkdir dist && cp java/*/target/*.jar dist
   lambda_move_artifact_script: mkdir dist && cp *.jar dist
   MVN_RUN: ${{ inputs.MVN_RUN }}
+  DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
 jobs:
   Veracode-SAST-Scan-Python:
     name: SAST Scan Python
@@ -80,7 +81,7 @@ jobs:
         with: 
           java-version: '8'
       - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.DEPLOYMENT_STAGE == 'stg') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
           filepath: 'dist/'
@@ -93,7 +94,7 @@ jobs:
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
       - uses: veracode/veracode-uploadandscan-action@master # Run the uploadandscan action. Inputs are described above.
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.DEPLOYMENT_STAGE == 'prd' ) }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
           filepath: 'dist/'
@@ -170,7 +171,7 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
-        if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}      
+        if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}
         uses: actions/checkout@v2
       - name: Prepare Artifacts
         shell: bash
