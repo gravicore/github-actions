@@ -1,0 +1,42 @@
+name: "graphql-build-docs"
+on:
+  workflow_call:
+    inputs:
+      TF_VAR_stage:
+        required: true
+        type: string
+      RUN_GRAPHDOC:  
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_NAME:
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_PATH:
+        required: true
+        type: string
+      RETENTION_DAYS:
+        required: true
+        type: number        
+  graphql-build-docs:
+    # START CONFIGURATION
+    name: "GraphQL Build Docs"
+    env:
+      TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # END CONFIGURATION
+    runs-on: ubuntu-latest
+    container: 
+      image: gravicore/alpine-node-aws-chamber:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install graphdoc
+        run: npm install -g @2fd/graphdoc
+      - name: Run graphdoc
+        run: ${{ inputs.RUN_GRAPHDOC }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
+          retention-days: ${{ inputs.RETENTION_DAYS }}

@@ -38,6 +38,9 @@ on:
       BUILD_RUN:
         required: false
         type: string
+      NODE_VERSION:
+        required: false
+        type: number
     secrets:
       PRD_AWS_ACCESS_KEY_ID:
         required: false
@@ -50,9 +53,10 @@ env:
   ENVIRONMENT: ${{ inputs.ENVIRONMENT }} 
   PYTHON_INCLUDE: ${{ inputs.PYTHON_INCLUDE }}
   JAVA_INCLUDE: ${{ inputs.JAVA_INCLUDE }}
+  NODE_VERSION: ${{ inputs.NODE_VERSION }}
 jobs:
   bump-version:
-    # if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     name: Bump Version
     steps:
@@ -109,11 +113,11 @@ jobs:
       - name: download veracode zip script
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
         run: | 
-          wget https://raw.githubusercontent.com/gravicore/github-actions/main/veracode.py
+          wget https://raw.githubusercontent.com/gravicore/github-actions/main/python-sast.py
       - name: Prepare Python Artifacts
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
         run: |
-          python veracode.py
+          python python-sast.py
           ls -a
           mv veracode_static_sast* dist/
       - name: Rename Zip file
