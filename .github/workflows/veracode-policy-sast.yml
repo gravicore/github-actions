@@ -58,11 +58,11 @@ jobs:
       - name: install zip
         run: sudo apt-get install zip
       - name: download veracode zip script
-        run: wget https://raw.githubusercontent.com/gravicore/github-actions/main/veracode.py
+        run: wget https://raw.githubusercontent.com/gravicore/github-actions/main/python-sast.py
       - name: create-python-archive
         shell: bash
         run: |
-         python veracode.py
+         python python-sast.py
          ls -a
          mv veracode_static_sast* dist/
       - name: Branch Name Var

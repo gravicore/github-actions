@@ -9,7 +9,7 @@ print(os_sep)
 print(base_dir)
 
 ignore_file_list = ['easter.py', 'isoparser.py', 'rebuild.py', 'relativedelta.py', 'rrule.py',
-            'tz.py', 'tzwin.py', 'utils.py', 'win.py', 'veracode.py']
+            'tz.py', 'tzwin.py', 'utils.py', 'win.py', 'python-sast.py']
 ignore_dir_list = ['layers']
 
 file_list = []
