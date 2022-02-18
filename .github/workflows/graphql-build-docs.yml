@@ -17,6 +17,7 @@ on:
       RETENTION_DAYS:
         required: true
         type: number        
+jobs:
   graphql-build-docs:
     # START CONFIGURATION
     name: "GraphQL Build Docs"
