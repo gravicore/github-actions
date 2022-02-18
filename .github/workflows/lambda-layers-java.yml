@@ -1,0 +1,42 @@
+name: "lambda-layers-java"
+on:
+  workflow_call:
+    inputs:
+      JAVA_VERSION:  
+        required: true
+        type: number
+      LAYERS_RUN:
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_NAME:
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_PATH:
+        required: true
+        type: string
+env:
+  MVN_RUN: ${{ inputs.LAYERS_RUN }}
+  JAVA_VERSION: ${{ inputs.JAVA_VERSION }}  
+jobs:  name: maven-layer-build_v210902:
+    name: "Create Layer"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK ${{ inputs.JAVA_VERSION }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ inputs.JAVA_VERSION }}
+      - name: Cache Maven
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Create Layer with Maven
+        run: ${{ env.LAYERS_RUN }}
+      - name: Upload Layer Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
