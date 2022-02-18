@@ -1,4 +1,4 @@
-name: "maven-build"
+name: "lambda-layers-java"
 on:
   workflow_call:
     inputs:
