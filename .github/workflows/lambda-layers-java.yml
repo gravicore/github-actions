@@ -17,7 +17,8 @@ on:
 env:
   MVN_RUN: ${{ inputs.LAYERS_RUN }}
   JAVA_VERSION: ${{ inputs.JAVA_VERSION }}  
-jobs:  name: maven-layer-build_v210902:
+jobs:  
+  maven-layer-build_v210902:
     name: "Create Layer"
     runs-on: ubuntu-latest
     steps:
