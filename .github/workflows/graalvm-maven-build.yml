@@ -1,0 +1,58 @@
+name: "graalvm-maven-build"
+on:
+  workflow_call:
+    inputs:
+      MVN_RUN:
+        required: true
+        type: string
+      JAVA_VERSION:  
+        required: true
+        type: number
+      GRAALVM_VERSION:  
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_NAME:
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_PATH:
+        required: true
+        type: string
+env:
+  lambda_load_artifact_script: mkdir dist && cp java/*/target/*.jar dist
+  MVN_RUN: ${{ inputs.MVN_RUN }}
+  JAVA_VERSION: ${{ inputs.JAVA_VERSION }}
+  GRAALVM_VERSION: ${{ inputs.GRAALVM_VERSION }}  
+jobs:
+  maven-build-scan:    
+    name: "Compile Maven Project"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: '${{ env.JAVA_VERSION }}'
+      - name: Cache Maven
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Install graalvm
+        uses: DeLaGuardo/setup-graalvm@master
+        with:
+          graalvm: '${{ env.GRAALVM_VERSION }}'
+          java: 'java${{ env.JAVA_VERSION }}'
+      - name: Install native-image
+        run: gu install native-image
+      - name: Build Native Image with Maven
+        run: ${{ env.MVN_RUN }}
+      - name: Move files to dist folder
+        shell: bash
+        run: ${{ env.lambda_load_artifact_script }}
+      - name: Upload Project Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
