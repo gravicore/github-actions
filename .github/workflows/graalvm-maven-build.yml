@@ -40,7 +40,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Install graalvm
-        uses: DeLaGuardo/setup-graalvm@master
+        uses: DeLaGuardo/setup-graalvm@5.0
         with:
           graalvm: '${{ env.GRAALVM_VERSION }}'
           java: 'java${{ env.JAVA_VERSION }}'
