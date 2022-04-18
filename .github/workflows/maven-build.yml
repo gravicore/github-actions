@@ -36,7 +36,7 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Install packages needed for SDK
-        run: sudo apt-get install unzip, zip, sed
+        run: sudo apt-get install unzip zip sed
       - name: Install SDK
         run: curl -s "https://get.sdkman.io" | bash
       - name: SET SDK Home
