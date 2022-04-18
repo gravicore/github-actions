@@ -38,7 +38,7 @@ jobs:
       - name: Install SDK
         run: curl -s "https://get.sdkman.io" | bash
       - name: SET SDK Home
-        run: source "$HOME/.sdkman/bin/sdkman-init.sh"
+        run: source "/home/runner/.sdkman/bin/sdkman-init.sh"
       - name: Check SDK Version
         run: sdk version
       - name: Install Maven Daemon
