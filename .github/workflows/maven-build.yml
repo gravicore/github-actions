@@ -37,17 +37,17 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
       - name: Install packages needed for SDK
         run: sudo apt-get install unzip zip sed
-      - name: Install SDK
+      - name: Install SDKMAN
         run: curl -s "https://get.sdkman.io" | bash
       - name: SET SDK Home
-        run: echo 'source "$HOME/.sdkman/bin/sdkman-init.sh"' >> ~/.bashrc
-      # - name: Check SDK Version
-      #   shell: bash
-      #   run: sdk current
+        run: source "$HOME/.sdkman/bin/sdkman-init.sh"
+      - name: Check SDK Version
+        # shell: bash
+        run: sdk version
       - name: Install Maven Daemon
         run: sdk install mvnd
       - name: Maven Daemon Version
-        shell: bash
+        # shell: bash
         run: mvnd --version
       - name: Build with Maven
         run: ${{ env.MVN_RUN }}
