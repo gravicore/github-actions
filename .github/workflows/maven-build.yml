@@ -36,7 +36,9 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
       - name: Install Maven Daemon
-        run: sdk install mvnd
+        run: brew install mvndaemon/homebrew-mvnd/mvnd
+      - name: Maven Daemon Version
+        run: mvnd --version
       - name: Build with Maven
         run: ${{ env.MVN_RUN }}
       - name: Move files to dist folder
