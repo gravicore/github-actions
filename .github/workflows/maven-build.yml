@@ -44,7 +44,7 @@ jobs:
         shell: bash
         run: echo 'source $MVND_HOME/bin/mvnd-bash-completion.bash' >> ~/.bashrc
       - name: Maven Daemon Version
-        run: mvndaemon/mvnd/mvnd --version
+        run: mvnd --version
       - name: Build with Maven
         run: ${{ env.MVN_RUN }}
       - name: Move files to dist folder
