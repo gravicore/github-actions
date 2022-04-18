@@ -43,7 +43,7 @@ jobs:
         run: echo 'source "$HOME/.sdkman/bin/sdkman-init.sh"' >> ~/.zshrc
       - name: Check SDK Version
         shell: bash
-        run: sdk version
+        run: sdk current
       - name: Install Maven Daemon
         run: sdk install mvnd
       - name: Maven Daemon Version
