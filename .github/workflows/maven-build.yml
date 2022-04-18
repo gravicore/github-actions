@@ -35,14 +35,14 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
+      - name: Install SDK
+        run: curl -s "https://get.sdkman.io" | bash
+      - name: SET SDK Home
+        run: source "$HOME/.sdkman/bin/sdkman-init.sh"
+      - name: Check SDK Version
+        run: sdk version
       - name: Install Maven Daemon
-        run: brew install mvndaemon/homebrew-mvnd/mvnd
-      - name: Set MVND_HOME
-        shell: bash
-        run: export MVND_HOME="/home/linuxbrew/.linuxbrew/Homebrew/Library/Taps/mvndaemon/homebrew-mvnd/mvnd/bin:$PATH"
-      - name: ensure to set MVND_HOME
-        shell: bash
-        run: echo 'source $MVND_HOME/bin/mvnd-bash-completion.bash' >> ~/.bashrc
+        run: sdk install mvnd
       - name: Maven Daemon Version
         run: mvnd --version
       - name: Build with Maven
