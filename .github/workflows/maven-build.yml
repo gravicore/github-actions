@@ -38,7 +38,7 @@ jobs:
       - name: Install Maven Daemon
         run: brew install mvndaemon/homebrew-mvnd/mvnd
       - name: Maven Daemon Version
-        run: mvnd --version
+        run: mvndaemon/mvnd/mvnd --version
       - name: Build with Maven
         run: ${{ env.MVN_RUN }}
       - name: Move files to dist folder
