@@ -44,8 +44,7 @@ jobs:
           sdk version
           sdk install mvnd
           mvnd --version
-      - name: Build with Maven
-        run: ${{ env.MVN_RUN }}
+          ${{ env.MVN_RUN }}
       - name: Move files to dist folder
         shell: bash
         run: ${{ env.lambda_load_artifact_script }}
