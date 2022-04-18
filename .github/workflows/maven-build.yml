@@ -40,7 +40,7 @@ jobs:
       - name: Install SDK
         run: curl -s "https://get.sdkman.io" | bash
       - name: SET SDK Home
-        run: echo 'source "$HOME/.sdkman/bin/sdkman-init.sh"' >> ~/.zshrc
+        run: echo 'source "$HOME/.sdkman/bin/sdkman-init.sh"' >> ~/.bashrc
       - name: Check SDK Version
         shell: bash
         run: sdk current
