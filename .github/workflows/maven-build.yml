@@ -43,8 +43,7 @@ jobs:
           source "$HOME/.sdkman/bin/sdkman-init.sh"
           sdk version
           sdk install mvnd
-      - name: Maven Daemon Version
-        run: mvnd --version
+          mvnd --version
       - name: Build with Maven
         run: ${{ env.MVN_RUN }}
       - name: Move files to dist folder
