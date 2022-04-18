@@ -37,6 +37,9 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
       - name: Install Maven Daemon
         run: brew install mvndaemon/homebrew-mvnd/mvnd
+      - name: Set MVND_HOME
+        shell: bash
+        run: export PATH="/home/linuxbrew/.linuxbrew/Homebrew/Library/Taps/mvndaemon/homebrew-mvnd/mvnd/bin:$PATH"
       - name: ensure to set MVND_HOME
         shell: bash
         run: echo 'source $MVND_HOME/bin/mvnd-bash-completion.bash' >> ~/.bashrc
