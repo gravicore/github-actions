@@ -35,6 +35,9 @@ on:
       JAVA_VERSION:  
         required: false
         type: number
+      MKDIR&CP_TO_UPLOAD_DIR:  # mkdir dist && cp java/*/target/*.jar dist
+        required: true
+        type: string
     secrets:
       VERACODE_API_ID:
         required: true
@@ -42,7 +45,6 @@ on:
         required: true
 env:
   VERACODE_APP: ${{ inputs.VERACODE_APP }}
-  lambda_load_artifact_script: mkdir dist && cp -v *.{jar,war,ear} dist
   MVN_RUN: ${{ inputs.MVN_RUN }}
   DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
 jobs:
@@ -130,7 +132,7 @@ jobs:
         run: ${{ env.MVN_RUN }}
       - name: Move files to dist folder
         shell: bash
-        run: ${{ env.lambda_load_artifact_script }}
+        run: ${{ inputs.MKDIR&CP_TO_UPLOAD_DIR }}
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
