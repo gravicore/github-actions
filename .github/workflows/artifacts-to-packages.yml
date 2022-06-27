@@ -1,0 +1,145 @@
+name: "artifacts-to-packages"
+on:
+  workflow_call:
+    inputs:
+      JAVA_VERSION:      # EXAMPLE: 8, or 11
+        required: true
+        type: number
+      TF_VAR_STAGE:      # EXAMPLE: dev, stg, prd
+        required: true
+        type: string
+      JIRA_ENV_TYPE:     # EXAMPLE: development, staging, or production
+        required: true
+        type: string
+      POM_PATH:
+        required: true
+        type: string
+      BUILD_RELEASE:
+        required: true
+        type: string  
+      BUILD_DEPLOY:
+        required: true
+        type: string
+      BUMP_TYPE:         # EXAMPLE: patch, minor, major
+        required: true
+        type: string
+    secrets:
+      MAVEN_PASSWORD:
+        required: true
+      MAVEN_USERNAME:
+        required: true
+env:
+  MVN_RUN: ${{ inputs.MVN_RUN }}
+  JAVA_VERSION: ${{ inputs.JAVA_VERSION }}
+jobs:
+    name: Push Artifacts
+    env:
+      JIRA_ENV_TYPE: ${{ inputs.JIRA_ENV_TYPE }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Bump version and push tag
+        id: bump-version
+        uses: mathieudutour/github-tag-action@v5.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: ${{ inputs.BUMP_TYPE }}
+          release_branches: main
+      - name: Create a GitHub release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ steps.bump-version.outputs.new_tag }}
+          name: ${{ steps.bump-version.outputs.new_tag }}
+          body: ${{ steps.bump-version.outputs.changelog }}
+      - name: Gather tag outputs
+        run: echo "versioning_new_tag=${{ steps.bump-version.outputs.new_tag }}" >> $GITHUB_ENV
+      - name: artifact version tag
+        run:  echo "versioning_new_tag=${{ steps.bump-version.outputs.new_tag }}" >> version_tag.txt
+      - name: Upload Project Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: project-artifacts
+          path: version_tag.txt
+      - name: Set up JDK ${{ inputs.JAVA_VERSION }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ inputs.JAVA_VERSION }}
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Update version with Maven ${{ steps.bump-version.outputs.new_version }}
+        env:
+          VERSION_TAG: ${{ steps.bump-version.outputs.new_version }}
+        run: |
+          echo "New Version = $VERSION_TAG"
+          ${{ inputs.BUILD_RELEASE }}
+      - name: Deploy with Maven
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  
+        run: ${{ inputs.BUILD_DEPLOY }}
+      - name: Gather tag outputs
+        run: echo "versioning_new_tag=${{ steps.bump-version.outputs.new_tag }}" >> $GITHUB_ENV
+      - name: artifact version tag
+        run:  echo "versioning_new_tag=${{ steps.bump-version.outputs.new_tag }}" >> version_tag.txt
+      - name: Upload Project Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: project-artifacts
+          path: version_tag.txt
+      - name: Parse Jira Keys from Commit
+        id: jira_keys
+        if: always()
+        uses: HighwayThree/jira-extract-issue-keys@master
+        with:
+          is-pull-request: ${{ github.event_name == 'pull_request' }}
+          parse-all-commits: ${{ github.event_name == 'push' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Format Jira Keys
+        run: |
+          JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
+          echo "${JIRA_KEYS}" >> .tmp_jira_keys
+          echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
+      - name: Confirm Deploy
+        run: |
+          echo "Deploying to ${{ inputs.TF_VAR_STAGE }}..."
+          echo "github.event_name: ${{github.event_name}}"
+          echo "github.ref: ${{github.ref}}"
+          echo "DEPLOY_STATE=successful"  >> $GITHUB_ENV
+      - name: Confirm Deploy State and Jira Key Values
+        if: always()
+        run: |
+          echo "DEPLOY_STATE: ${{env.DEPLOY_STATE}}"
+          echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      - name: Failed Deployment
+        if: failure()
+        run: echo "DEPLOY_STATE=failed" >> $GITHUB_ENV
+      - name: Push Deployment Info to Jira
+        if: "${{ env.JIRA_KEYS != '' }}"
+        id: push_deployment_info_to_jira
+        uses: HighwayThree/jira-upload-deployment-info@master
+        with:
+          client-id: "${{ secrets.JIRA_CLIENT_ID }}"
+          client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
+          cloud-instance-base-url: "https://celink.atlassian.net/"
+          deployment-sequence-number: "${{ github.run_id }}"
+          update-sequence-number: "${{ github.run_id }}"
+          issue-keys: "${{ env.JIRA_KEYS }}"
+          display-name: "${{ inputs.TF_VAR_STAGE }} Run ID #${{github.run_id}}"
+          url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+          description: "${{ inputs.TF_VAR_STAGE }} Deployment"
+          last-updated: "${{github.event.head_commit.timestamp}}"
+          label: "${{ inputs.TF_VAR_STAGE }} Deployment Label"
+          state: "${{env.DEPLOY_STATE}}"
+          pipeline-id: "${{ github.repository }} ${{ github.workflow }}"
+          pipeline-display-name: "${{ github.workflow }} (#${{ github.run_number }})"
+          pipeline-url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+          environment-id: "${{ inputs.TF_VAR_STAGE }}"
+          environment-display-name: "${{ inputs.TF_VAR_STAGE }}"
+          environment-type: "${{ inputs.JIRA_ENV_TYPE }}"

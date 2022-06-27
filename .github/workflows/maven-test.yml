@@ -1,0 +1,85 @@
+name: "maven-test"
+on:
+  workflow_call:
+    inputs:
+      MVN_TEST_RUN:      # EXAMPLE: mvn -Dmaven.test.skip=true install --file java/pom.xml
+        required: true
+        type: string
+      JAVA_VERSION:      
+        required: true
+        type: number
+      TF_VAR_STAGE:      # EXAMPLE: dev, stage, prd
+        required: true
+        type: string
+      POM_PATH:
+        required: true
+        type: string
+env:
+  MVN_RUN: ${{ inputs.MVN_RUN }}
+  JAVA_VERSION: ${{ inputs.JAVA_VERSION }}  
+jobs:
+  run-tests:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Set up JDK ${{ inputs.JAVA_VERSION }}
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ inputs.JAVA_VERSION }}
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Test with Maven
+        run: ${{ inputs.MVN_TEST_RUN }}
+      - name: Parse Jira Keys from Commit
+        id: jira_keys
+        if: always()
+        uses: HighwayThree/jira-extract-issue-keys@master
+        with:
+          is-pull-request: ${{ github.event_name == 'pull_request' }}
+          parse-all-commits: ${{ github.event_name == 'push' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Format Jira Keys
+        run: |
+          JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
+          echo "${JIRA_KEYS}" >> .tmp_jira_keys
+          echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
+      - name: Echo Jira Keys
+        run: |
+          echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      - name: Confirm Build
+        run: |
+          echo "Planning ${{ inputs.TF_VAR_STAGE }}..."
+          echo "github.event_name: ${{github.event_name}}"
+          echo "github.ref: ${{github.ref}}"
+          echo "BUILD_STATE=successful"  >> $GITHUB_ENV
+      - name: Confirm Build State and Jira Key Values
+        if: always()
+        run: |
+          echo "BUILD_STATE: ${{env.BUILD_STATE}}"
+          echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      - name: Failed Deployment
+        if: failure()
+        run: echo "BUILD_STATE=failed" >> $GITHUB_ENV
+      - name: Push Build Info to Jira
+        if: "${{ env.JIRA_KEYS != '' }}"
+        id: push_build_info_to_jira
+        uses: HighwayThree/jira-upload-build-info@master
+        with:
+          pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_STAGE }}'
+          client-id: '${{ secrets.JIRA_CLIENT_ID }}'
+          client-secret: '${{ secrets.JIRA_CLIENT_SECRET }}'
+          cloud-instance-base-url: 'https://celink.atlassian.net/'
+          issue-keys: "${{ env.JIRA_KEYS }}"
+          build-state: "${{ env.BUILD_STATE }}"
+          build-display-name: '${{ github.workflow }}: ${{ inputs.TF_VAR_STAGE }}'
+          build-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+          build-ref-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"

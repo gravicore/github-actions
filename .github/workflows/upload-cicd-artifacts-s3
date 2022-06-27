@@ -1,4 +1,4 @@
-name: "versioning-upload"
+name: "upload-cicd-artifacts-s3"
 on:
   workflow_call:
     inputs:                ## inputs if "required" MUST be in caller workflow
@@ -51,39 +51,7 @@ env:
   AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }} 
   NAMESPACE: ${{ inputs.NAMESPACE }} 
   ENVIRONMENT: ${{ inputs.ENVIRONMENT }} 
-  PYTHON_INCLUDE: ${{ inputs.PYTHON_INCLUDE }}
-  JAVA_INCLUDE: ${{ inputs.JAVA_INCLUDE }}
-  NODE_VERSION: ${{ inputs.NODE_VERSION }}
-jobs:
-  bump-version:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    runs-on: ubuntu-latest
-    name: Bump Version
-    steps:
-      - uses: actions/checkout@v2
-      - name: Bump version and push tag
-        id: bump-version
-        uses: mathieudutour/github-tag-action@v5.6
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          default_bump: minor
-          release_branches: main
-      - name: Create a GitHub release
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ steps.bump-version.outputs.new_tag }}
-          name: ${{ steps.bump-version.outputs.new_tag }}
-          body: ${{ steps.bump-version.outputs.changelog }}
-      - name: Gather tag outputs
-        run: echo "versioning_new_tag=${{ steps.bump-version.outputs.new_tag }}" >> $GITHUB_ENV
-      - name: artifact version tag
-        run:  echo "versioning_new_tag=${{ steps.bump-version.outputs.new_tag }}" >> version_tag.txt
-      - name: Upload Project Artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: project-artifacts
-          path: version_tag.txt
-  upload-artifacts-s3-python-java:
+jobs:  upload-artifacts-s3-python-java:
     name: Artifacts Upload S3 Python or Java
     if: ${{ (inputs.PYTHON_INCLUDE == true) || (inputs.JAVA_INCLUDE == true) }}
     needs: bump-version
@@ -99,35 +67,35 @@ jobs:
       - name: Variablize version tag
         run: cat version_tag.txt >> $GITHUB_ENV
       - name: create folder dist
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.PYTHON_INCLUDE == 'true') }}
         run: mkdir dist
       - name: install zip
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.PYTHON_INCLUDE == 'true') }}
         run: | 
           apk add zip
       - name: Set up Python 3.6
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.PYTHON_INCLUDE == 'true') }}
         uses: actions/setup-python@v2
         with:
           python-version: 3.6
       - name: download veracode zip script
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.PYTHON_INCLUDE == 'true') }}
         run: | 
           wget https://raw.githubusercontent.com/gravicore/github-actions/main/python-sast.py
       - name: Prepare Python Artifacts
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.PYTHON_INCLUDE == 'true') }}
         run: |
           python python-sast.py
           ls -a
           mv veracode_static_sast* dist/
       - name: Rename Zip file
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.PYTHON_INCLUDE == 'true') }}
         run: |
           cd dist
           ls -a
           mv *.zip ${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}_${{ env.versioning_new_tag }}_$(echo ${GITHUB_SHA} | cut -c1-8)_${{ github.run_id }}.zip
       - name: Prepare Java Artifacts
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.JAVA_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.JAVA_INCLUDE == 'true') }}
         run: mkdir -p dist/${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}_${{ env.versioning_new_tag }}_$(echo ${GITHUB_SHA} | cut -c1-8)_${{ github.run_id }} && cp *.jar dist/${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}_${{ env.versioning_new_tag }}_$(echo ${GITHUB_SHA} | cut -c1-8)_${{ github.run_id }}
       - name: Configure AWS credentials from Account
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
@@ -137,12 +105,12 @@ jobs:
           aws-secret-access-key: ${{ secrets.PRD_AWS_ACCESS_KEY_SECRET}}
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
       - name: Publish to S3 Python
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.PYTHON_INCLUDE == 'true') }}
         run: |
           export $(chamber exec $NAMESPACE-$ENVIRONMENT-$DEPLOYMENT_STAGE -- env | grep -e CICD_ARTIFACTS_BUCKET_ID)
           aws s3 cp ./dist/* s3://$CICD_ARTIFACTS_BUCKET_ID/artifacts_github/${{ github.event.repository.name }}/
       - name: Publish to S3 Java
-        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.JAVA_INCLUDE == 'true') }}
+        if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( inputs.JAVA_INCLUDE == 'true') }}
         run: |
           export $(chamber exec $NAMESPACE-$ENVIRONMENT-$DEPLOYMENT_STAGE -- env | grep -e CICD_ARTIFACTS_BUCKET_ID)
           aws s3 sync ./dist/* s3://$CICD_ARTIFACTS_BUCKET_ID/artifacts_github/${{ github.event.repository.name }}/${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}_${{ env.versioning_new_tag }}_$(echo ${GITHUB_SHA} | cut -c1-8)_${{ github.run_id }}
@@ -163,7 +131,7 @@ jobs:
         uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: ${{ inputs.NODE_VERSION }}
       - name: Install Dependencies
         run: yarn install
       - name: Embed Config
