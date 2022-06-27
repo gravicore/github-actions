@@ -11,9 +11,6 @@ on:
       TF_VAR_STAGE:      # EXAMPLE: dev, stage, prd
         required: true
         type: string
-      POM_PATH:
-        required: true
-        type: string
 env:
   MVN_RUN: ${{ inputs.MVN_RUN }}
   JAVA_VERSION: ${{ inputs.JAVA_VERSION }}  
