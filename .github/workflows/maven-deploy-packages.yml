@@ -101,9 +101,9 @@ jobs:
           path: version_tag.txt
       - name: move artifacts to upload dir
         run: |
-          mv **/*.jar /${{ inputs.UPLOAD_ARTIFACT_PATH }}/
-          mv **/*.ear /${{ inputs.UPLOAD_ARTIFACT_PATH }}/
-          mv **/*.war /${{ inputs.UPLOAD_ARTIFACT_PATH }}/
+          find . -name '*.jar' -exec cp {} /${{ inputs.UPLOAD_ARTIFACT_PATH }}/ \;
+          find . -name '*.ear' -exec cp {} /${{ inputs.UPLOAD_ARTIFACT_PATH }}/ \;
+          find . -name '*.war' -exec cp {} /${{ inputs.UPLOAD_ARTIFACT_PATH }}/ \;
       - name: Upload Project Artifacts
         uses: actions/upload-artifact@v2
         with:
