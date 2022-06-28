@@ -1,4 +1,4 @@
-name: "artifacts-to-packages"
+name: "maven-deploy-packages"
 on:
   workflow_call:
     inputs:
@@ -11,9 +11,6 @@ on:
       JIRA_ENV_TYPE:     # EXAMPLE: development, staging, or production
         required: true
         type: string
-      POM_PATH:
-        required: true
-        type: string
       BUILD_RELEASE:
         required: true
         type: string  
@@ -21,6 +18,12 @@ on:
         required: true
         type: string
       BUMP_TYPE:         # EXAMPLE: patch, minor, major
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_NAME:
+        required: true
+        type: string
+      UPLOAD_ARTIFACT_PATH:
         required: true
         type: string
     secrets:
@@ -92,6 +95,16 @@ jobs:
         with:
           name: project-artifacts
           path: version_tag.txt
+      - name: move artifacts to upload dir
+        run: |
+          mv **/*.jar /${{ inputs.UPLOAD_ARTIFACT_PATH }}/
+          mv **/*.ear /${{ inputs.UPLOAD_ARTIFACT_PATH }}/
+          mv **/*.war /${{ inputs.UPLOAD_ARTIFACT_PATH }}/
+      - name: Upload Project Artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()

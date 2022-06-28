@@ -29,16 +29,16 @@ on:
       REACT_ANGULAR_BUILD_DIR:
         required: false
         type: string
-      EMBED_CONFIG_CHAMBER:
+      EMBED_CONFIG_CHAMBER: # if react/angular
         required: false
         type: string
-      EMBED_CONFIG_RUN:
+      EMBED_CONFIG_RUN:     # if react/angular
         required: false
         type: string
-      BUILD_RUN:
+      BUILD_RUN:            # if react/angular
         required: false
         type: string
-      NODE_VERSION:
+      NODE_VERSION:         # if react/angular
         required: false
         type: number
     secrets:
@@ -48,7 +48,7 @@ on:
         required: false      
 env: 
   DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
-  AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }} 
+  AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }}
   NAMESPACE: ${{ inputs.NAMESPACE }} 
   ENVIRONMENT: ${{ inputs.ENVIRONMENT }} 
 jobs:  upload-artifacts-s3-python-java:
@@ -60,10 +60,17 @@ jobs:  upload-artifacts-s3-python-java:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
-      - name: Download Project Artifacts
-        uses: actions/download-artifact@v2
+      - name: Download All Artifacts        
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
+      - name: Upload Project Artifacts
+        uses: actions/download-artifact@v3
         with:
           name: project-artifacts
+      - name: Display structure of downloaded files
+        working-directory: dist
+        run: ls -R
       - name: Variablize version tag
         run: cat version_tag.txt >> $GITHUB_ENV
       - name: create folder dist
