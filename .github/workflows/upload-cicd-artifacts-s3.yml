@@ -51,10 +51,10 @@ env:
   AWS_DEFAULT_REGION: ${{ inputs.AWS_DEFAULT_REGION }}
   NAMESPACE: ${{ inputs.NAMESPACE }} 
   ENVIRONMENT: ${{ inputs.ENVIRONMENT }} 
-jobs:  upload-artifacts-s3-python-java:
+jobs:  
+  upload-artifacts-s3-python-java:
     name: Artifacts Upload S3 Python or Java
     if: ${{ (inputs.PYTHON_INCLUDE == true) || (inputs.JAVA_INCLUDE == true) }}
-    needs: bump-version
     runs-on: ubuntu-latest
     container: gravicore/alpine-node-aws-chamber
     steps:

@@ -31,13 +31,17 @@ on:
         required: true
       MAVEN_USERNAME:
         required: true
+      JIRA_CLIENT_ID:
+        required: false
+      JIRA_CLIENT_SECRET:
+        required: false      
 env:
   MVN_RUN: ${{ inputs.MVN_RUN }}
   JAVA_VERSION: ${{ inputs.JAVA_VERSION }}
+  JIRA_ENV_TYPE: ${{ inputs.JIRA_ENV_TYPE }}
 jobs:
-    name: Push Artifacts
-    env:
-      JIRA_ENV_TYPE: ${{ inputs.JIRA_ENV_TYPE }}
+  push-artifacts:
+    name: Version-Deploy-Upload
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

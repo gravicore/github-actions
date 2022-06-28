@@ -11,6 +11,11 @@ on:
       TF_VAR_STAGE:      # EXAMPLE: dev, stage, prd
         required: true
         type: string
+    secrets:
+      JIRA_CLIENT_ID:
+        required: false
+      JIRA_CLIENT_SECRET:
+        required: false      
 env:
   MVN_RUN: ${{ inputs.MVN_RUN }}
   JAVA_VERSION: ${{ inputs.JAVA_VERSION }}  
