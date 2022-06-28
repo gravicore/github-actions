@@ -124,7 +124,6 @@ jobs:
   upload-artifacts-s3-angular-react:
     name: Artifacts Upload S3 React or Angular
     if: ${{ (inputs.REACT_INCLUDE == true) || (inputs.ANGULAR_INCLUDE == true) }}
-    needs: bump-version
     runs-on: ubuntu-latest
     container: gravicore/alpine-node-aws-chamber
     steps:
