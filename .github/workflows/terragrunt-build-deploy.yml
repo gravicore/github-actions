@@ -20,9 +20,6 @@ on:
       TF_WORKING_DIR:
         required: true
         type: string            
-      TERRAFORM_PRE_APPLY_SUBFOLDERS:
-        required: true
-        type: string            
       TERRAGRUNT_LOG_LEVEL:
         required: true
         type: string
@@ -32,18 +29,24 @@ on:
       LAMBDA_MOVE_ARTIFACT_SCRIPT:
         required: false
         type: string
+      AWS_HOSTED:
+        required: false
+        type: boolean
+      AZURE_HOSTED:
+        required: false
+        type: boolean      
     secrets:
-      DEV_AWS_ACCESS_KEY_ID:
+      DEV_ACCESS_KEY_ID:
         required: false
-      DEV_AWS_ACCESS_KEY_SECRET:
+      DEV_ACCESS_KEY_SECRET:
         required: false
-      STG_AWS_ACCESS_KEY_ID:
+      STG_ACCESS_KEY_ID:
         required: false
-      STG_AWS_ACCESS_KEY_SECRET:
+      STG_ACCESS_KEY_SECRET:
         required: false
-      PRD_AWS_ACCESS_KEY_ID:
+      PRD_ACCESS_KEY_ID:
         required: false
-      PRD_AWS_ACCESS_KEY_SECRET:
+      PRD_ACCESS_KEY_SECRET:
         required: false
       JIRA_CLIENT_ID:
         required: true
@@ -55,54 +58,16 @@ env:
   TF_VERSION: ${{ inputs.TF_VERSION }}
   TG_VERSION: ${{ inputs.TG_VERSION }}
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
-  TERRAFORM_PRE_APPLY_SUBFOLDERS: ${{ inputs.TERRAFORM_PRE_APPLY_SUBFOLDERS }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
 jobs:
-  terragrunt-pre-apply:
-    name: "Terragrunt Pre Apply"
-    env:
-      TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_wrapper: false
-          terraform_version: ${{ env.TF_VERSION }}
-      - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.1.0
-        with:
-          terragrunt_version: ${{ env.TG_VERSION }}
-      - name: Lint Terraform
-        run: terraform fmt -recursive -check
-        working-directory: ${{ env.TF_WORKING_DIR }}
-      - name: Lint Terragrunt
-        run: terragrunt hclfmt --terragrunt-check
-        working-directory: ${{ env.TF_WORKING_DIR }}
-      - name: Download Project Artifacts
-        if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v2
-        with:
-          name: project-artifacts  
-      - name: Move to dist
-        if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
-      - name: Pre-validate Apply Steps
-        env:
-          FILES: ${{env.TERRAFORM_PRE_APPLY_SUBFOLDERS}}
-        run: for f in $FILES; do terragrunt apply -auto-approve --terragrunt-working-dir $f --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}; done
   terragrunt-plan:
     # START CONFIGURATION
     name: "Terragrunt Plan"
     needs: terragrunt-pre-apply
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
+      ACCESS_KEY_ID: ${{ ( secrets.DEV_ACCESS_KEY_ID || secrets.STG_ACCESS_KEY_ID || secrets.PRD_ACCESS_KEY_ID ) }}
+      SECRET_ACCESS_KEY: ${{ ( secrets.DEV_ACCESS_KEY_SECRET || secrets.STG_ACCESS_KEY_SECRET || secrets.PRD_ACCESS_KEY_SECRET ) }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # END CONFIGURATION
     runs-on: ubuntu-latest
@@ -135,13 +100,17 @@ jobs:
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
       - name: Setup AWS CLI
+        if: ${{ (inputs.AWS_HOSTED == true) }}
         uses: unfor19/install-aws-cli-action@v1
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ env.ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+      - name: Azure CLI Action
+        if: ${{ (inputs.AZURE_HOSTED == true) }}
+        uses: Azure/cli@v1
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v1
         with:
@@ -196,8 +165,8 @@ jobs:
     needs: terragrunt-plan
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
+      ACCESS_KEY_ID: ${{ ( secrets.DEV_ACCESS_KEY_ID || secrets.STG_ACCESS_KEY_ID || secrets.PRD_ACCESS_KEY_ID ) }}
+      SECRET_ACCESS_KEY: ${{ ( secrets.DEV_ACCESS_KEY_SECRET || secrets.STG_ACCESS_KEY_SECRET || secrets.PRD_ACCESS_KEY_SECRET ) }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     environment:
       name: ${{ inputs.TF_VAR_stage }}
@@ -229,13 +198,17 @@ jobs:
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
       - name: Setup AWS CLI
+        if: ${{ (inputs._HOSTED == true) }}
         uses: unfor19/install-aws-cli-action@v1
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-access-key-id: ${{ env.ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+      - name: Azure CLI Action
+        if: ${{ (inputs.AZURE_HOSTED == true) }}
+        uses: Azure/cli@v1
       - name: Setup Terraform          
         uses: hashicorp/setup-terraform@v1
         with:
