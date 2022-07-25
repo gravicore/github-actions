@@ -204,6 +204,7 @@ jobs:
         if: ${{ (inputs._HOSTED == true) }}
         uses: unfor19/install-aws-cli-action@v1
       - name: Configure AWS Credentials
+        if: ${{ (inputs.AWS_HOSTED == true) }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ env.ACCESS_KEY_ID }}
@@ -244,7 +245,7 @@ jobs:
         if: failure()
         run: echo "DEPLOY_STATE=failed" >> $GITHUB_ENV
       - name: Push Deployment Info to Jira
-        if: "${{ env.JIRA_KEYS != '' }}"
+        if: ${{ (env.JIRA_KEYS != '') && (inputs.JIRA_TICKET_INFO == true) }}
         id: push_deployment_info_to_jira
         uses: HighwayThree/jira-upload-deployment-info@master
         with:
