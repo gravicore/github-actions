@@ -29,12 +29,6 @@ on:
       LAMBDA_MOVE_ARTIFACT_SCRIPT:
         required: false
         type: string
-      AWS:
-        required: false
-        type: boolean
-      AZURE:
-        required: false
-        type: boolean      
     secrets:
       DEV_ACCESS_KEY_ID:
         required: false
