@@ -201,7 +201,7 @@ jobs:
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
       - name: Setup AWS CLI
-        if: ${{ (inputs._HOSTED == true) }}
+        if: ${{ (inputs.AWS_HOSTED == true) }}
         uses: unfor19/install-aws-cli-action@v1
       - name: Configure AWS Credentials
         if: ${{ (inputs.AWS_HOSTED == true) }}
