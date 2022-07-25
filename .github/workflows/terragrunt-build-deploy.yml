@@ -149,7 +149,7 @@ jobs:
         if: failure()
         run: echo "BUILD_STATE=failed" >> $GITHUB_ENV
       - name: Push Build Info to Jira
-        if: ("${{ env.JIRA_KEYS != '' }}" && ${{ (inputs.JIRA_TICKET_INFO == true) }})
+        if: ${{ env.JIRA_KEYS != '' }} && ${{ (inputs.JIRA_TICKET_INFO == true) }}
         id: push_build_info_to_jira
         uses: HighwayThree/jira-upload-build-info@master
         with:
