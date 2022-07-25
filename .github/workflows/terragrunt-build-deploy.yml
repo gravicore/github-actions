@@ -102,6 +102,7 @@ jobs:
         if: ${{ (inputs.AWS_HOSTED == true) }}
         uses: unfor19/install-aws-cli-action@v1
       - name: Configure AWS Credentials
+        if: ${{ (inputs.AWS_HOSTED == true) }}
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ env.ACCESS_KEY_ID }}
