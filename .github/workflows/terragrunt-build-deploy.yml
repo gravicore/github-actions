@@ -63,7 +63,6 @@ jobs:
   terragrunt-plan:
     # START CONFIGURATION
     name: "Terragrunt Plan"
-    needs: terragrunt-pre-apply
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
       ACCESS_KEY_ID: ${{ ( secrets.DEV_ACCESS_KEY_ID || secrets.STG_ACCESS_KEY_ID || secrets.PRD_ACCESS_KEY_ID ) }}
