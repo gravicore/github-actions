@@ -141,6 +141,7 @@ jobs:
         run: terragrunt validate
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Plan Terraform
+        env: GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM == '0') }}
         run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
