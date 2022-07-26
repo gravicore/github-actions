@@ -84,7 +84,7 @@ jobs:
           echo ${{ secrets.GH_PAT }}
           echo ${{ env.GITHUB_TOKEN }}
           echo ${{ env.Ben }}
-          echo ${{ env.doublecheck }}
+          echo ${{ secrets.doublecheck }}
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
