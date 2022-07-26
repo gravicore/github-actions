@@ -55,6 +55,10 @@ on:
         required: false
       JIRA_CLIENT_SECRET:
         required: false
+      GH_PAT:
+        required: false
+      BEN_SECRET:
+        required: false
 env:
   JIRA_ENV_TYPE: ${{ inputs.JIRA_ENV_TYPE }}
   LAMBDA_MOVE_ARTIFACT_SCRIPT: ${{ inputs.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
