@@ -66,7 +66,7 @@ env:
   TG_VERSION: ${{ inputs.TG_VERSION }}
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
-  GITHUB_TOKEN: ${{ inputs.GH_PAT }}
+  GITHUB_TOKEN: ${{ secrets.GH_PAT }}
   Ben: ${{ inputs.BEN_SECRET }}
   doublecheck: ${{ inputs.GH_PAT }}
 jobs:
@@ -85,9 +85,10 @@ jobs:
         uses: actions/checkout@v2
       - name: echo test 
         run: |
-          echo ${{ env.GH_PAT }}
+          echo ${{ inputs.GH_PAT }}
           echo ${{ env.GITHUB_TOKEN }}
           echo ${{ inputs.BEN_SECRET }}
+          echo ${{ env.Ben }}          
           echo ${{ env.doublecheck }}
       - name: Parse Jira Keys from Commit
         id: jira_keys
