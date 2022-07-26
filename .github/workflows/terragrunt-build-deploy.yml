@@ -66,9 +66,9 @@ env:
   TG_VERSION: ${{ inputs.TG_VERSION }}
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
-  GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-  Ben: ${{ secrets.BEN_SECRET }}
-  doublecheck: ${{ secrets.GH_PAT }}
+  GITHUB_TOKEN: ${{ inputs.GH_PAT }}
+  Ben: ${{ inputs.BEN_SECRET }}
+  doublecheck: ${{ inputs.GH_PAT }}
 jobs:
   terragrunt-plan:
     # START CONFIGURATION
