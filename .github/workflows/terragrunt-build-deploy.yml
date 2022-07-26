@@ -80,7 +80,7 @@ jobs:
       - name: echo test 
         run: |
           echo ${{ secrets.GH_PAT }}
-          echo $GITHUB_TOKEN
+          echo ${{ env.GITHUB_TOKEN }}
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
