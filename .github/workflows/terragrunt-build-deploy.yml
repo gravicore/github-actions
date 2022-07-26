@@ -130,9 +130,9 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Plan Terraform
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM == '0') }}
+        run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         with:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-        run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Plan Terraform Parallel
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM != '0') }}
