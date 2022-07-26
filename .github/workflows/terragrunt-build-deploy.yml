@@ -62,6 +62,7 @@ env:
   TG_VERSION: ${{ inputs.TG_VERSION }}
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
+  GITHUB_TOKEN : ${{ secrets.GH_PAT }}
 jobs:
   terragrunt-plan:
     # START CONFIGURATION
@@ -76,6 +77,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: echo test 
+        run: |
+          echo ${{ secrets.GH_PAT }}
+          echo $GITHUB_TOKEN
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
