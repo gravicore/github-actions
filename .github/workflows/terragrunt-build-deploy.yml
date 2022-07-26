@@ -77,7 +77,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: GITHUB_TOKEN-TEST
-        run: echo ${{ GH_TOKEN }}
+        run: echo ${{ GITHUB_TOKEN }}
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
