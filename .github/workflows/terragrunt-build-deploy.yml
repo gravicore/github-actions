@@ -70,7 +70,7 @@ jobs:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
       ACCESS_KEY_ID: ${{ ( secrets.DEV_ACCESS_KEY_ID || secrets.STG_ACCESS_KEY_ID || secrets.PRD_ACCESS_KEY_ID ) }}
       SECRET_ACCESS_KEY: ${{ ( secrets.DEV_ACCESS_KEY_SECRET || secrets.STG_ACCESS_KEY_SECRET || secrets.PRD_ACCESS_KEY_SECRET ) }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # END CONFIGURATION
     runs-on: ubuntu-latest
     steps:
@@ -172,7 +172,7 @@ jobs:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
       ACCESS_KEY_ID: ${{ ( secrets.DEV_ACCESS_KEY_ID || secrets.STG_ACCESS_KEY_ID || secrets.PRD_ACCESS_KEY_ID ) }}
       SECRET_ACCESS_KEY: ${{ ( secrets.DEV_ACCESS_KEY_SECRET || secrets.STG_ACCESS_KEY_SECRET || secrets.PRD_ACCESS_KEY_SECRET ) }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     environment:
       name: ${{ inputs.TF_VAR_stage }}
     # END CONFIGURATION
