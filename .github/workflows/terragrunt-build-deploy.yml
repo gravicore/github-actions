@@ -85,10 +85,10 @@ jobs:
         uses: actions/checkout@v2
       - name: echo test 
         run: |
-          echo ${{ secrets.GH_PAT }}
+          echo ${{ env.GH_PAT }}
           echo ${{ env.GITHUB_TOKEN }}
-          echo ${{ secrets.BEN_SECRET }}
-          echo ${{ secrets.doublecheck }}
+          echo ${{ inputs.BEN_SECRET }}
+          echo ${{ env.doublecheck }}
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
