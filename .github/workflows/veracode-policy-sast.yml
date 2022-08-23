@@ -36,7 +36,7 @@ on:
         required: false
         type: number
       MKDIR_AND_CP_TO_UPLOAD_DIR:  # mkdir dist && cp java/*/target/*.jar dist
-        required: true
+        required: false
         type: string
     secrets:
       VERACODE_API_ID:
