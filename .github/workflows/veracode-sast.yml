@@ -35,6 +35,9 @@ on:
       JAVA_VERSION:  
         required: false
         type: number
+      MKDIR_AND_CP_TO_UPLOAD_DIR:  # mkdir dist && cp java/*/target/*.jar dist
+        required: false
+        type: string
     secrets:
       VERACODE_API_ID:
         required: true
@@ -42,7 +45,6 @@ on:
         required: true
 env:
   VERACODE_APP: ${{ inputs.VERACODE_APP }}
-  lambda_load_artifact_script: mkdir dist && cp -v *.{jar,war,ear} dist
   MVN_RUN: ${{ inputs.MVN_RUN }}
   DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
 jobs:
@@ -79,7 +81,7 @@ jobs:
         uses: actions/setup-java@v1 # Make java accessible on path so the uploadandscan action can run.
         with: 
           java-version: '8'
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -92,7 +94,8 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+          deleteIncompleteScan: 1
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -103,6 +106,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
+          deleteIncompleteScan: 1
   Veracode-SAST-Scan-Java:    
     name: SAST Scan Java
     if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.JAVA_INCLUDE == true) }}
@@ -130,12 +134,12 @@ jobs:
         run: ${{ env.MVN_RUN }}
       - name: Move files to dist folder
         shell: bash
-        run: ${{ env.lambda_load_artifact_script }}
+        run: ${{ inputs.MKDIR_AND_CP_TO_UPLOAD_DIR }}
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -148,7 +152,8 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+          deleteIncompleteScan: 1
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -159,6 +164,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
+          deleteIncompleteScan: 1
   Veracode-SAST-Scan-React-Angular:    
     name: SAST Scan React
     if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.REACT_ANGULAR_INCLUDE == true) }}
@@ -174,12 +180,12 @@ jobs:
         uses: actions/checkout@v2
       - name: Prepare Artifacts
         shell: bash
-        run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
+        run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml' 'npm-shrinkwrap.json' ' package-lock.json' 'package.json' 'yarn.lock'
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -192,7 +198,8 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+          deleteIncompleteScan: 1
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -203,3 +210,4 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
+          deleteIncompleteScan: 1
