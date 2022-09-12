@@ -162,18 +162,18 @@ jobs:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        if: ${{steps.filter.outputs.rds == 'true'}}
+        if: ${{steps.filter.outputs.rds == 'false'}}
         uses: autero1/action-terragrunt@v1.1.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Validate Terraform
-        if: ${{steps.filter.outputs.rds == 'true'}}
+        if: ${{steps.filter.outputs.rds == 'false'}}
         run: terragrunt validate
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Plan Terraform
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{steps.filter.outputs.rds == 'true'}}
+        if: ${{steps.filter.outputs.rds == 'false'}}
         run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Confirm Build
@@ -258,18 +258,18 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform          
-        if: ${{steps.filter.outputs.rds == 'true'}}
+        if: ${{steps.filter.outputs.rds == 'false'}}
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        if: ${{steps.filter.outputs.rds == 'true'}}
+        if: ${{steps.filter.outputs.rds == 'false'}}
         uses: autero1/action-terragrunt@v1.1.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Apply Terraform
-        if: ${{steps.filter.outputs.rds == 'true'}}
+        if: ${{steps.filter.outputs.rds == 'false'}}
         run: terragrunt run-all apply --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Confirm Deploy
