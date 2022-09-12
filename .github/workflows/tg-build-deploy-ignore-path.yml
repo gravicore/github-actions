@@ -8,9 +8,6 @@ on:
       JIRA_ENV_TYPE:                  ## development, staging, or production
         required: true
         type: string
-      TERRAGRUNT_PARALLELISM:
-        required: false
-        type: number
       TF_VERSION:
         required: true
         type: string
@@ -18,6 +15,9 @@ on:
         required: true
         type: string
       TF_WORKING_DIR:
+        required: true
+        type: string            
+      TERRAFORM_PRE_APPLY_SUBFOLDERS:
         required: true
         type: string            
       TERRAGRUNT_LOG_LEVEL:
@@ -35,8 +35,8 @@ on:
       JIRA_TICKET_INFO:
         required: false
         type: boolean 
-      IGNORE_PATH:
-        required:false
+      IGNORE_PATH:                 ## currently set to rds only
+        required: false
         type: string
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
@@ -63,14 +63,53 @@ env:
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
 jobs:
+  terragrunt-pre-apply:
+    name: "Terragrunt Pre Apply"
+    env:
+      TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
+      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
+      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_wrapper: false
+          terraform_version: ${{ env.TF_VERSION }}
+      - name: Setup Terragrunt
+        uses: autero1/action-terragrunt@v1.1.0
+        with:
+          terragrunt_version: ${{ env.TG_VERSION }}
+      - name: Lint Terraform
+        run: terraform fmt -recursive -check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+      - name: Lint Terragrunt
+        run: terragrunt hclfmt --terragrunt-check
+        working-directory: ${{ env.TF_WORKING_DIR }}
+      - name: Download Project Artifacts
+        if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
+        uses: actions/download-artifact@v2
+        with:
+          name: project-artifacts  
+      - name: Move to dist
+        if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
+        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
+      - name: Pre-validate Apply Steps
+        env:
+          FILES: ${{env.TERRAFORM_PRE_APPLY_SUBFOLDERS}}
+        run: for f in $FILES; do terragrunt apply -auto-approve --terragrunt-working-dir $f --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}; done
   terragrunt-plan:
     # START CONFIGURATION
     name: "Terragrunt Plan"
+    needs: terragrunt-pre-apply
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
       AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
       AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      IGNORE_PATH: ${{inputs.IGNORE_PATH}}
     # END CONFIGURATION
     runs-on: ubuntu-latest
     steps:
@@ -80,8 +119,8 @@ jobs:
         id: filter
         with:
           filters: |
-            ${{ inputs.IGNORE_PATH }}:
-              - '${{ inputs.IGNORE_PATH }}/**'
+            ${{inputs.IGNORE_PATH}}:
+              - '${{inputs.IGNORE_PATH}}/**'
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -123,24 +162,20 @@ jobs:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        if: steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false'
+        if: ${{steps.filter.outputs.rds == 'true'}}
         uses: autero1/action-terragrunt@v1.1.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Validate Terraform
-        if: steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false'
+        if: ${{steps.filter.outputs.rds == 'true'}}
         run: terragrunt validate
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Plan Terraform
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{ ( inputs.TERRAGRUNT_PARALLELISM == '0' ) && ( steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false' ) }}
+        if: ${{steps.filter.outputs.rds == 'true'}}
         run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
-      - name: Plan Terraform Parallel
-        if: ${{ ( inputs.TERRAGRUNT_PARALLELISM != '0' ) && ( steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false' ) }}
-        run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-parallelism ${{ inputs.TERRAGRUNT_PARALLELISM }} --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
-        working-directory: ${{ env.TF_WORKING_DIR }} 
       - name: Confirm Build
         run: |
           echo "Planning ${{ inputs.TF_VAR_stage }}..."
@@ -184,6 +219,12 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            ${{inputs.IGNORE_PATH}}:
+              - '${{inputs.IGNORE_PATH}}/**'
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -217,22 +258,18 @@ jobs:
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform          
-        if: steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false'
+        if: ${{steps.filter.outputs.rds == 'true'}}
         uses: hashicorp/setup-terraform@v1
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        if: steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false'
+        if: ${{steps.filter.outputs.rds == 'true'}}
         uses: autero1/action-terragrunt@v1.1.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Apply Terraform
-        if: ${{ ( inputs.TERRAGRUNT_PARALLELISM != '') && ( steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false' ) }}
-        run: terragrunt run-all apply --terragrunt-non-interactive --terragrunt-parallelism ${{ inputs.TERRAGRUNT_PARALLELISM }} --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
-        working-directory: ${{ env.TF_WORKING_DIR }}
-      - name: Apply Terraform
-        if: ${{ ( inputs.TERRAGRUNT_PARALLELISM == '') && ( steps.filter.outputs.${{ inputs.IGNORE_PATH }} == 'false' ) }}
+        if: ${{steps.filter.outputs.rds == 'true'}}
         run: terragrunt run-all apply --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Confirm Deploy
