@@ -146,7 +146,7 @@ jobs:
         run: zip -r ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
       - name: Prepare SCA files
         shell: bash
-        run: zip -r ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip 'npm-shrinkwrap.json' 'package-lock.json' 'package.json' 'yarn.lock' '/node_modules'
+        run: zip -r ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip node_modules 'npm-shrinkwrap.json' 'package-lock.json' 'package.json' 'yarn.lock'
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
