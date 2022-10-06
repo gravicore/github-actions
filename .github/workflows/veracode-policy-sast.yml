@@ -132,10 +132,21 @@ jobs:
   Veracode-SAST-Scan-React-Angular:    
     name: SAST Scan React
     runs-on: ubuntu-latest
+    container: gravicore/alpine-node-aws-chamber
     if: inputs.REACT_ANGULAR_INCLUDE == true
     steps:    
       - name: Checkout
         uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 16
+      - name: Install Dependencies
+        run: yarn install
+      - name: ls -al
+        run: |
+          ls -al
+          cd node_modules
+          ls-al
       - name: Prepare Artifacts
         shell: bash
         run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
