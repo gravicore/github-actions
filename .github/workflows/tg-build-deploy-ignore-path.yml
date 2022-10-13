@@ -38,6 +38,15 @@ on:
       IGNORE_PATH:                 ## currently set to rds only
         required: false
         type: string
+      S3_SYNC_REQUIRED:
+        required: false
+        type: boolean
+      SYNC_TO:                     ## s3://$CICD_ARTIFACTS_BUCKET_ID/artifacts_github/${{ github.event.repository.name }}/${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}
+        required: false
+        type: string
+      SYNC_FROM:                   ## ./dist/*
+        required: false
+        type: string
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
@@ -253,6 +262,11 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+      - name: Publish to S3 rds
+        if: ${{ (inputs.S3_SYNC_REQUIRED == true) }}
+        run: |
+          export $(chamber exec $NAMESPACE-$ENVIRONMENT-$DEPLOYMENT_STAGE -- env | grep -e CICD_ARTIFACTS_BUCKET_ID)
+          aws s3 sync ${{ inputs.SYNC_FROM }} ${{ inputs.SYNC_TO }}
       - name: Setup Terraform          
         if: ${{steps.filter.outputs.rds == 'false'}}
         uses: hashicorp/setup-terraform@v1
