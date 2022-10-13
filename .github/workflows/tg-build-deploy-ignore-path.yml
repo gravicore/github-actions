@@ -31,7 +31,10 @@ on:
         type: string
       JIRA_TICKET_INFO:
         required: false
-        type: boolean 
+        type: boolean
+      JIRA_URL:
+        required: false
+        type: string  
       IGNORE_PATH:                 ## currently set to rds only
         required: false
         type: string
