@@ -41,7 +41,7 @@ on:
       S3_SYNC_REQUIRED:
         required: false
         type: boolean
-      SYNC_TO:                     ## s3://$CICD_ARTIFACTS_BUCKET_ID/artifacts_github/${{ github.event.repository.name }}/${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}
+      SYNC_TO:                     ## s3://$CICD_ARTIFACTS_BUCKET_ID/artifacts_github/${{ github.event.repository.name }}/${{ github.event.repository.name }}_${{ env.TF_VAR_stage }}
         required: false
         type: string
       SYNC_FROM:                   ## ./dist/*
@@ -265,7 +265,7 @@ jobs:
       - name: Publish to S3 rds
         if: ${{ (inputs.S3_SYNC_REQUIRED == true) }}
         run: |
-          export $(chamber exec $NAMESPACE-$ENVIRONMENT-$DEPLOYMENT_STAGE -- env | grep -e CICD_ARTIFACTS_BUCKET_ID)
+          export $(chamber exec $NAMESPACE-$ENVIRONMENT-$TF_VAR_stage -- env | grep -e CICD_ARTIFACTS_BUCKET_ID)
           aws s3 sync ${{ inputs.SYNC_FROM }} ${{ inputs.SYNC_TO }}
       - name: Setup Terraform          
         if: ${{steps.filter.outputs.rds == 'false'}}
