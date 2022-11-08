@@ -38,6 +38,10 @@ on:
       MKDIR_AND_CP_TO_UPLOAD_DIR:  # mkdir dist && cp java/*/target/*.jar dist
         required: false
         type: string
+      NODE_VERSION:
+        required: false
+        type: string
+
     secrets:
       VERACODE_API_ID:
         required: true
@@ -136,12 +140,17 @@ jobs:
     steps:    
       - name: Checkout
         uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: ${{inputs.NODE_VERSION}}
+      - name: Install Dependencies
+        run: yarn install
       - name: Prepare Artifacts
         shell: bash
-        run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
+        run: zip -r ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
       - name: Prepare SCA files
         shell: bash
-        run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip 'npm-shrinkwrap.json' 'package-lock.json' 'package.json' 'yarn.lock'
+        run: zip -r ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip node_modules 'npm-shrinkwrap.json' 'package-lock.json' 'package.json' 'yarn.lock'
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
@@ -150,7 +159,7 @@ jobs:
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
-          filepath: '${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
+          filepath: '${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
           vid: '${{ secrets.VERACODE_API_ID }}'
           vkey: '${{ secrets.VERACODE_API_KEY }}'
           exclude: '${{ inputs.VERACODE_EXCLUDE }}'
