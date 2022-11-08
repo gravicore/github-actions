@@ -20,6 +20,9 @@ on:
       JAVA_INCLUDE:           # true/false
         required: false
         type: boolean
+      DOTNET_INCLUDE:           # true/false
+        required: false
+        type: boolean
       REACT_ANGULAR_INCLUDE:  # true/false
         required: false
         type: boolean
@@ -39,6 +42,15 @@ on:
         required: false
         type: string
       NODE_VERSION:
+        required: false
+        type: string
+      SOLUTION_NAME:
+        required: false
+        type: string
+      DEBUG_OPTION:
+        required: false
+        type: boolean
+      DEBUG_TYPE:
         required: false
         type: string
     secrets:
@@ -168,7 +180,7 @@ jobs:
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
           deleteIncompleteScan: 1
-  Veracode-SAST-Scan-React-Angular:    
+  Veracode-SAST-Scan-React-Angular:
     name: SAST Scan React
     if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.REACT_ANGULAR_INCLUDE == true) }}
     runs-on: ubuntu-latest
@@ -215,6 +227,59 @@ jobs:
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
           filepath: '${{ inputs.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          exclude: '${{ inputs.VERACODE_EXCLUDE }}'
+          include: '${{ inputs.VERACODE_INCLUDE }}'
+          criticality: '${{ inputs.VERACODE_CRITICALITY }}'
+          appname: '${{ env.VERACODE_APP }}'
+          deleteIncompleteScan: 1
+  Veracode-SAST-Scan-.Net:
+    # START CONFIGURATION
+    name: Veracode-SAST-Scan-.Net
+    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.DOTNET_INCLUDE == true) }}
+    # END CONFIGURATION
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/dotnet/sdk:3.1-alpine
+    steps:
+      - name: Checkout Stg
+        if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
+        uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+      - name: Checkout Prd
+        if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}      
+        uses: actions/checkout@v2
+      - name: "Build"
+        run: |
+          dotnet restore ./${inputs.SOLUTION_NAME}/${inputs.SOLUTION_NAME}.sln
+          dotnet build --no-restore ./${inputs.SOLUTION_NAME}/${inputs.SOLUTION_NAME}.sln -p:DebugType={inputs.DEBUG_TYPE} -p:DebugSymbols=${inputs.DEBUG_OPTION}
+          dotnet publish --no-build ./${inputs.SOLUTION_NAME}/${inputs.SOLUTION_NAME}.sln -o ./dist/${inputs.SOLUTION_NAME}/ -p:DebugType={inputs.DEBUG_TYPE} -p:DebugSymbols=${inputs.DEBUG_OPTION}
+      - name: Gather time stamp
+        run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+      - name: Setup Java
+        uses: actions/setup-java@v1 # Make java accessible on path so the uploadandscan action can run.
+        with: 
+          java-version: '8'
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+        if: ${{ ( inputs.DEPLOYMENT_STAGE == 'stg' ) }}
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: 'dist/'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          createsandbox: 'true'
+          sandboxname: '${{ github.event.workflow_run.head_branch }}'
+          exclude: '${{ inputs.VERACODE_EXCLUDE }}'
+          include: '${{ inputs.VERACODE_INCLUDE }}'
+          criticality: '${{ inputs.VERACODE_CRITICALITY }}'
+          appname: '${{ env.VERACODE_APP }}'
+          deleteIncompleteScan: 1
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+        if: ${{ inputs.DEPLOYMENT_STAGE == 'prd') }}
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: 'dist/'
           vid: '${{ secrets.VERACODE_API_ID }}'
           vkey: '${{ secrets.VERACODE_API_KEY }}'
           exclude: '${{ inputs.VERACODE_EXCLUDE }}'
