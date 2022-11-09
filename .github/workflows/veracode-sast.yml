@@ -282,7 +282,7 @@ jobs:
           appname: '${{ env.VERACODE_APP }}'
           deleteIncompleteScan: 1
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
-        if: ${{ inputs.DEPLOYMENT_STAGE == 'prd') }}
+        if: ${{ ( inputs.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
           filepath: 'dist/'
