@@ -240,9 +240,9 @@ jobs:
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
           deleteIncompleteScan: 1
-  Veracode-SAST-Scan-.Net:
+  Veracode-SAST-Scan-DotNet:
     # START CONFIGURATION
-    name: Veracode-SAST-Scan-.Net
+    name: Veracode-SAST-Scan-DotNet
     if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.DOTNET_INCLUDE == true) }}
     # END CONFIGURATION
     runs-on: ubuntu-latest
