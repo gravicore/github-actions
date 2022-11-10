@@ -196,9 +196,11 @@ jobs:
         uses: actions/checkout@v2
       - name: "Build"
         run: |
+          apk add p7zip
           dotnet restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}}
           dotnet build --no-restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}} -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
           dotnet publish --no-build ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.PUBLISH_FILE_TYPE}} -o ./dist/${{inputs.SOLUTION_NAME}}/ -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
+          cd ./dist/${{inputs.SOLUTION_NAME}}/ && 7z a -tzip ../app.zip .
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
@@ -208,7 +210,7 @@ jobs:
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
-          filepath: 'dist/'
+          filepath: 'dist/app.zip'
           vid: '${{ secrets.VERACODE_API_ID }}'
           vkey: '${{ secrets.VERACODE_API_KEY }}'
           exclude: '${{ inputs.VERACODE_EXCLUDE }}'
