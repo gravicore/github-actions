@@ -196,10 +196,9 @@ jobs:
         uses: actions/checkout@v2
       - name: "Build"
         run: |
-          export SOLUTION_NAME=${{inputs.SOLUTION_NAME}}
-          dotnet restore ./${env.SOLUTION_NAME}/${env.SOLUTION_NAME}.${inputs.BUILD_FILE_TYPE}
-          dotnet build --no-restore ./${env.SOLUTION_NAME}/${env.SOLUTION_NAME}.${inputs.BUILD_FILE_TYPE} -p:DebugType={inputs.DEBUG_TYPE} -p:DebugSymbols=${inputs.DEBUG_OPTION}
-          dotnet publish --no-build ./${env.SOLUTION_NAME}/${env.SOLUTION_NAME}.${inputs.PUBLISH_FILE_TYPE} -o ./dist/${env.SOLUTION_NAME}/ -p:DebugType={inputs.DEBUG_TYPE} -p:DebugSymbols=${inputs.DEBUG_OPTION}
+          dotnet restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}}
+          dotnet build --no-restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}} -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
+          dotnet publish --no-build ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.PUBLISH_FILE_TYPE}} -o ./dist/${{inputs.SOLUTION_NAME}}/ -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
