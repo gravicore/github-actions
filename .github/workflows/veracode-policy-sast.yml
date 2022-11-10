@@ -183,7 +183,7 @@ jobs:
           appname: '${{ env.VERACODE_APP }}'
   Veracode-SAST-Scan-DotNet:
     # START CONFIGURATION
-    name: Veracode-SAST-Scan-DotNet
+    name: SAST-Scan-DotNet
     if: inputs.DOTNET_INCLUDE == true
     # END CONFIGURATION
     runs-on: ubuntu-latest
