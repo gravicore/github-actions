@@ -115,7 +115,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
@@ -127,7 +126,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
   Veracode-SAST-Scan-Java:    
     name: SAST Scan Java
     if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.JAVA_INCLUDE == true) }}
@@ -173,7 +171,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
@@ -185,7 +182,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
   Veracode-SAST-Scan-React-Angular:
     name: SAST Scan React
     if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.REACT_ANGULAR_INCLUDE == true) }}
@@ -227,7 +223,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
@@ -239,7 +234,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
   Veracode-SAST-Scan-DotNet:
     # START CONFIGURATION
     name: Veracode-SAST-Scan-DotNet
@@ -282,7 +276,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ ( inputs.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
@@ -294,4 +287,3 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
