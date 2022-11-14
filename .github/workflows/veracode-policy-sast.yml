@@ -20,6 +20,9 @@ on:
       JAVA_INCLUDE:
         required: false
         type: boolean
+      DOTNET_INCLUDE:           # true/false
+        required: false
+        type: boolean
       REACT_ANGULAR_INCLUDE:
         required: false
         type: boolean
@@ -41,7 +44,21 @@ on:
       NODE_VERSION:
         required: false
         type: string
-
+      SOLUTION_NAME:
+        required: false
+        type: string
+      DEBUG_OPTION:
+        required: false
+        type: boolean
+      DEBUG_TYPE:
+        required: false
+        type: string
+      BUILD_FILE_TYPE:
+        required: false
+        type: string
+      PUBLISH_FILE_TYPE:
+        required: false
+        type: string
     secrets:
       VERACODE_API_ID:
         required: true
@@ -90,7 +107,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
   Veracode-SAST-Scan-Java:
     name: SAST Scan Java
     runs-on: ubuntu-latest
@@ -132,7 +148,6 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
   Veracode-SAST-Scan-React-Angular:    
     name: SAST Scan React
     runs-on: ubuntu-latest
@@ -166,4 +181,36 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-          deleteIncompleteScan: 1
+  Veracode-SAST-Scan-DotNet:
+    # START CONFIGURATION
+    name: SAST-Scan-DotNet
+    if: inputs.DOTNET_INCLUDE == true
+    # END CONFIGURATION
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/dotnet/sdk:3.1-alpine
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: "Build"
+        run: |
+          apk add p7zip
+          dotnet restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}}
+          dotnet build --no-restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}} -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
+          dotnet publish --no-build ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.PUBLISH_FILE_TYPE}} -o ./dist/${{inputs.SOLUTION_NAME}}/ -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
+          cd ./dist/${{inputs.SOLUTION_NAME}}/ && 7z a -tzip ../app.zip .
+      - name: Gather time stamp
+        run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+      - name: Setup Java
+        uses: actions/setup-java@v1 # Make java accessible on path so the uploadandscan action can run.
+        with: 
+          java-version: '8'
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: 'dist/app.zip'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          exclude: '${{ inputs.VERACODE_EXCLUDE }}'
+          include: '${{ inputs.VERACODE_INCLUDE }}'
+          criticality: '${{ inputs.VERACODE_CRITICALITY }}'
+          appname: '${{ env.VERACODE_APP }}'
