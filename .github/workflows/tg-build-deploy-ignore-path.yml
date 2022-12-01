@@ -31,8 +31,20 @@ on:
         type: string
       JIRA_TICKET_INFO:
         required: false
-        type: boolean 
+        type: boolean
+      JIRA_URL:
+        required: false
+        type: string  
       IGNORE_PATH:                 ## currently set to rds only
+        required: false
+        type: string
+      S3_SYNC_REQUIRED:
+        required: false
+        type: boolean
+      SYNC_TO:                     ## s3://$CICD_ARTIFACTS_BUCKET_ID/artifacts_github/${{ github.event.repository.name }}/${{ github.event.repository.name }}_${{ env.TF_VAR_stage }}
+        required: false
+        type: string
+      SYNC_FROM:                   ## ./dist/*
         required: false
         type: string
     secrets:
@@ -67,16 +79,17 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
       AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
     runs-on: ubuntu-latest
+    container: gravicore/alpine-node-aws-chamber
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.1.0
+        uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Lint Terraform
@@ -109,15 +122,22 @@ jobs:
       IGNORE_PATH: ${{inputs.IGNORE_PATH}}
     # END CONFIGURATION
     runs-on: ubuntu-latest
+    container: gravicore/alpine-node-aws-chamber
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
         id: filter
         with:
           filters: |
             ${{inputs.IGNORE_PATH}}:
               - '${{inputs.IGNORE_PATH}}/**'
+      - name: Install dependencies
+        run: |
+          apk add bash sudo unzip curl git
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -143,22 +163,20 @@ jobs:
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
-      - name: Setup AWS CLI
-        uses: unfor19/install-aws-cli-action@v1
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
         if: ${{steps.filter.outputs.rds == 'false'}}
-        uses: autero1/action-terragrunt@v1.1.0
+        uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Validate Terraform
@@ -211,15 +229,22 @@ jobs:
       name: ${{ inputs.TF_VAR_stage }}
     # END CONFIGURATION
     runs-on: ubuntu-latest
+    container: gravicore/alpine-node-aws-chamber
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
         id: filter
         with:
           filters: |
             ${{inputs.IGNORE_PATH}}:
               - '${{inputs.IGNORE_PATH}}/**'
+      - name: Install dependencies
+        run: |
+          apk add bash sudo unzip curl git
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -241,24 +266,26 @@ jobs:
           name: project-artifacts
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
-      - name: Setup AWS CLI
-        uses: unfor19/install-aws-cli-action@v1
+        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
+      - name: Publish to S3 rds
+        if: ${{ (inputs.S3_SYNC_REQUIRED == true) }}
+        run: |
+          aws s3 sync ${{ inputs.SYNC_FROM }} ${{ inputs.SYNC_TO }} --delete
       - name: Setup Terraform          
         if: ${{steps.filter.outputs.rds == 'false'}}
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
         if: ${{steps.filter.outputs.rds == 'false'}}
-        uses: autero1/action-terragrunt@v1.1.0
+        uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Apply Terraform
