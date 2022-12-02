@@ -67,14 +67,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.1.0
+        uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Lint Terraform
@@ -85,7 +85,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: project-artifacts  
       - name: Move to dist
@@ -108,7 +108,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -128,27 +128,27 @@ jobs:
           echo "Jira Keys: ${{env.JIRA_KEYS}}"
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: project-artifacts
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
       - name: Setup AWS CLI
-        uses: unfor19/install-aws-cli-action@v1
+        uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.1.0
+        uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Validate Terraform
@@ -205,7 +205,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -222,27 +222,27 @@ jobs:
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: project-artifacts
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
+        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
       - name: Setup AWS CLI
-        uses: unfor19/install-aws-cli-action@v1
+        uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform          
-        uses: hashicorp/setup-terraform@v1
+        uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.1.0
+        uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Apply Terraform
