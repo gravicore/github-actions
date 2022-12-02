@@ -100,7 +100,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: project-artifacts  
       - name: Move to dist
@@ -157,7 +157,7 @@ jobs:
           echo "Jira Keys: ${{env.JIRA_KEYS}}"
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: project-artifacts
       - name: Move to dist
@@ -261,7 +261,7 @@ jobs:
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: project-artifacts
       - name: Move to dist
