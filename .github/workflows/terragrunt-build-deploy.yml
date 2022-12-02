@@ -1,11 +1,11 @@
 name: "terragrunt-build-deploy"
 on:
   workflow_call:
-    inputs:                           ## inputs if "required" MUST be in caller workflow
-      TF_VAR_stage:                   ## dev, stg, or prd
+    inputs: ## inputs if "required" MUST be in caller workflow
+      TF_VAR_stage: ## dev, stg, or prd
         required: true
         type: string
-      JIRA_ENV_TYPE:                  ## development, staging, or production
+      JIRA_ENV_TYPE: ## development, staging, or production
         required: true
         type: string
       TERRAGRUNT_PARALLELISM:
@@ -19,10 +19,10 @@ on:
         type: string
       TF_WORKING_DIR:
         required: true
-        type: string            
+        type: string
       TERRAFORM_PRE_APPLY_SUBFOLDERS:
         required: true
-        type: string            
+        type: string
       TERRAGRUNT_LOG_LEVEL:
         required: true
         type: string
@@ -49,6 +49,10 @@ on:
         required: true
       JIRA_CLIENT_SECRET:
         required: true
+      DATADOG_API_KEY:
+        required: false
+      DATADOG_APP_KEY:
+        required: false
 env:
   JIRA_ENV_TYPE: ${{ inputs.JIRA_ENV_TYPE }}
   LAMBDA_MOVE_ARTIFACT_SCRIPT: ${{ inputs.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
@@ -57,6 +61,8 @@ env:
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAFORM_PRE_APPLY_SUBFOLDERS: ${{ inputs.TERRAFORM_PRE_APPLY_SUBFOLDERS }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
+  TF_VAR_datadog_api_key: ${{ inputs.DATADOG_API_KEY }}
+  TF_VAR_datadog_app_key: ${{ inputs.DATADOG_APP_KEY }}
 jobs:
   terragrunt-pre-apply:
     name: "Terragrunt Pre Apply"
@@ -87,7 +93,7 @@ jobs:
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         uses: actions/download-artifact@v3
         with:
-          name: project-artifacts  
+          name: project-artifacts
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
@@ -133,7 +139,7 @@ jobs:
           name: project-artifacts
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
+        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
       - name: Setup AWS CLI
         uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
@@ -161,7 +167,7 @@ jobs:
       - name: Plan Terraform Parallel
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM != '0') }}
         run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-parallelism ${{ inputs.TERRAGRUNT_PARALLELISM }} --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
-        working-directory: ${{ env.TF_WORKING_DIR }} 
+        working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Confirm Build
         run: |
           echo "Planning ${{ inputs.TF_VAR_stage }}..."
@@ -181,13 +187,13 @@ jobs:
         id: push_build_info_to_jira
         uses: HighwayThree/jira-upload-build-info@master
         with:
-          pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}'
-          client-id: '${{ secrets.JIRA_CLIENT_ID }}'
-          client-secret: '${{ secrets.JIRA_CLIENT_SECRET }}'
-          cloud-instance-base-url: 'https://celink.atlassian.net/'
+          pipeline-id: "${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}"
+          client-id: "${{ secrets.JIRA_CLIENT_ID }}"
+          client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
+          cloud-instance-base-url: "https://celink.atlassian.net/"
           issue-keys: "${{ env.JIRA_KEYS }}"
           build-state: "${{ env.BUILD_STATE }}"
-          build-display-name: '${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}'
+          build-display-name: "${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}"
           build-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
           build-ref-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
   terragrunt-apply:
@@ -236,7 +242,7 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      - name: Setup Terraform          
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
