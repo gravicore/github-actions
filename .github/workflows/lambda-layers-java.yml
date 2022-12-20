@@ -27,6 +27,7 @@ jobs:
       - name: Set up JDK ${{ inputs.JAVA_VERSION }}
         uses: actions/setup-java@v3.8.0
         with:
+          distribution: 'temurin'
           java-version: ${{ inputs.JAVA_VERSION }}
       - name: Cache Maven
         uses: actions/cache@v3

@@ -95,6 +95,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
         with: 
+          distribution: 'temurin'
           java-version: '8'
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') }}
@@ -117,6 +118,7 @@ jobs:
       - name: Set up JDK '${{ inputs.JAVA_VERSION }}'
         uses: actions/setup-java@v3.8.0
         with:
+          distribution: 'temurin'
           java-version: '${{ inputs.JAVA_VERSION }}'
       - name: Cache Maven
         uses: actions/cache@v3
@@ -136,6 +138,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
         with: 
+          distribution: 'temurin'
           java-version: '8'
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') }}
@@ -203,6 +206,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
         with: 
+          distribution: 'temurin'
           java-version: '8'
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         with:
