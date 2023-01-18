@@ -127,6 +127,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
+        if: "github.ref != 'refs/heads/main'"
         id: filter
         with:
           filters: |
@@ -234,6 +235,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - uses: dorny/paths-filter@v2
+        if: "github.ref != 'refs/heads/main'"
         id: filter
         with:
           filters: |
