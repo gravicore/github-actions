@@ -176,18 +176,18 @@ jobs:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        if: ${{steps.filter.outputs.rds == 'false'}}
+        if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Validate Terraform
-        if: ${{steps.filter.outputs.rds == 'false'}}
+        if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         run: terragrunt validate
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Plan Terraform
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        if: ${{steps.filter.outputs.rds == 'false'}}
+        if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Confirm Build
@@ -280,18 +280,18 @@ jobs:
         run: |
           aws s3 sync ${{ inputs.SYNC_FROM }} ${{ inputs.SYNC_TO }} --delete
       - name: Setup Terraform          
-        if: ${{steps.filter.outputs.rds == 'false'}}
+        if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         uses: hashicorp/setup-terraform@v2.0.3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        if: ${{steps.filter.outputs.rds == 'false'}}
+        if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         uses: autero1/action-terragrunt@v1.2.0
         with:
           terragrunt_version: ${{ env.TG_VERSION }}
       - name: Apply Terraform
-        if: ${{steps.filter.outputs.rds == 'false'}}
+        if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         run: terragrunt run-all apply --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Confirm Deploy
