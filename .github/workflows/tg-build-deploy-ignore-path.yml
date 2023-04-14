@@ -71,6 +71,8 @@ env:
   TG_VERSION: ${{ inputs.TG_VERSION }}
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
+  TERRAFORM_PRE_APPLY_SUBFOLDERS: ${{ inputs.TERRAFORM_PRE_APPLY_SUBFOLDERS }}
+
 jobs:
   terragrunt-pre-apply:
     name: "Terragrunt Pre Apply"
@@ -79,7 +81,6 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
       AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
     runs-on: ubuntu-latest
-    container: gravicore/alpine-node-aws-chamber
     steps:
       - name: Checkout
         uses: actions/checkout@v3
