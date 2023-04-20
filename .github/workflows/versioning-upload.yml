@@ -54,7 +54,7 @@ env:
   PYTHON_INCLUDE: ${{ inputs.PYTHON_INCLUDE }}
   JAVA_INCLUDE: ${{ inputs.JAVA_INCLUDE }}
   NODE_VERSION: ${{ inputs.NODE_VERSION }}
-  PYTHON_VERSION: 3.9
+  PYTHON_VERSION: pypy3.9
 jobs:
   bump-version:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
