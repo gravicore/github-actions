@@ -54,6 +54,7 @@ env:
   PYTHON_INCLUDE: ${{ inputs.PYTHON_INCLUDE }}
   JAVA_INCLUDE: ${{ inputs.JAVA_INCLUDE }}
   NODE_VERSION: ${{ inputs.NODE_VERSION }}
+  PYTHON_VERSION: pypy3.9
 jobs:
   bump-version:
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
@@ -69,7 +70,7 @@ jobs:
           default_bump: minor
           release_branches: main
       - name: Create a GitHub release
-        uses: ncipollo/release-action@v1.11.2
+        uses: ncipollo/release-action@v1.12.0
         with:
           tag: ${{ steps.tag_version.outputs.new_tag }}
           name: ${{ steps.tag_version.outputs.new_tag }}
@@ -105,11 +106,11 @@ jobs:
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
         run: | 
           apk add zip
-      - name: Set up Python 3.6
+      - name: Set up Python $(( env.PYTHON_VERSION ))
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
-        uses: actions/setup-python@v2.3.3
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.6
+          python-version: $(( env.PYTHON_VERSION ))
       - name: download veracode zip script
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
         run: | 
