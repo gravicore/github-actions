@@ -32,6 +32,10 @@ on:
       LAMBDA_MOVE_ARTIFACT_SCRIPT:
         required: false
         type: string
+      ADDITIONAL_INPUT:
+        required: false
+        type: string
+
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
