@@ -32,10 +32,9 @@ on:
       LAMBDA_MOVE_ARTIFACT_SCRIPT:
         required: false
         type: string
-      ADDITIONAL_INPUT:
-        required: false
+      NODE_VERSION:
+        required: true
         type: string
-
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
@@ -61,6 +60,7 @@ env:
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAFORM_PRE_APPLY_SUBFOLDERS: ${{ inputs.TERRAFORM_PRE_APPLY_SUBFOLDERS }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
+  NODE_VERSION: ${{ inputs.NODE_VERSION }}
 jobs:
   terragrunt-pre-apply:
     name: "Terragrunt Pre Apply"
@@ -113,6 +113,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+      - name: Verify Node.js installation
+        run: node -v
+      - name: Gather Image Version
+        id: set_version
+        run: |
+          cd loopback
+          VERSION=$(npm run version --silent)
+          echo $VERSION
+          cd ..
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -210,6 +224,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '${{ env.NODE_VERSION }}'
+      - name: Verify Node.js installation
+        run: node -v
+      - name: Gather Image Version
+        id: set_version
+        run: |
+          cd loopback
+          VERSION=$(npm run version --silent)
+          echo $VERSION
+          cd ..
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"      
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
