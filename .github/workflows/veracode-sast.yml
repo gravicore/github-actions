@@ -185,7 +185,7 @@ jobs:
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
   Veracode-SAST-Scan-React-Angular:
-    name: SAST Scan React
+    name: SAST Scan React/Angular
     if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.REACT_ANGULAR_INCLUDE == true) }}
     runs-on: ubuntu-latest
     steps:    
@@ -202,12 +202,9 @@ jobs:
           node-version: ${{inputs.NODE_VERSION}}
       - name: Install Dependencies
         run: yarn install
-      - name: Prepare Artifacts
-        shell: bash
-        run: zip -r ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
-      - name: Prepare SCA files
-        shell: bash
-        run: zip -r ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip node_modules 'npm-shrinkwrap.json' 'package-lock.json' 'package.json' 'yarn.lock'
+      - name: Zip files
+        run: |
+          find . -type f \( -name "*.asp" -o -name "*.css" -o -name "*.ehtml" -o -name "*.es" -o -name "*.es6" -o -name "*.handlebars" -o -name "*.hbs" -o -name "*.hjs" -o -name "*.htm" -o -name "*.html" -o -name "*.js" -o -name "*.jsx" -o -name "*.json" -o -name "*.jsp" -o -name "*.map" -o -name "*.mustache" -o -name "*.php" -o -name "*.ts" -o -name "*.tsx" -o -name "*.vue" -o -name "*.xhtml" -o -name "npm-shrinkwrap.json" -o -name "package-lock.json" -o -name "package.json" -o -name "yarn.lock" \) -exec zip ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip {} +
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
