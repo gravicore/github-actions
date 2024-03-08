@@ -109,23 +109,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Parse Jira Keys from Commit
-        id: jira_keys
-        if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
-        with:
-          is-pull-request: ${{ github.event_name == 'pull_request' }}
-          parse-all-commits: ${{ github.event_name == 'push' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Format Jira Keys
-        run: |
-          JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
-          echo "${JIRA_KEYS}" >> .tmp_jira_keys
-          echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
-      - name: Echo Jira Keys
-        run: |
-          echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      # - name: Parse Jira Keys from Commit
+      #   id: jira_keys
+      #   if: always()
+      #   uses: HighwayThree/jira-extract-issue-keys@master
+      #   with:
+      #     is-pull-request: ${{ github.event_name == 'pull_request' }}
+      #     parse-all-commits: ${{ github.event_name == 'push' }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Format Jira Keys
+      #   run: |
+      #     JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
+      #     echo "${JIRA_KEYS}" >> .tmp_jira_keys
+      #     echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
+      # - name: Echo Jira Keys
+      #   run: |
+      #     echo "Jira Keys: ${{env.JIRA_KEYS}}"
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         uses: actions/download-artifact@v3
@@ -142,12 +142,12 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      - name: Clear Files
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      # - name: Clear Files
+      #   run: |
+      #     sudo rm -rf /usr/share/dotnet
+      #     sudo rm -rf /opt/ghc
+      #     sudo rm -rf "/usr/local/share/boost"
+      #     sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2.0.3
         with:
@@ -168,34 +168,34 @@ jobs:
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM != '0') }}
         run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-parallelism ${{ inputs.TERRAGRUNT_PARALLELISM }} --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }} 
-      - name: Confirm Build
-        run: |
-          echo "Planning ${{ inputs.TF_VAR_stage }}..."
-          echo "github.event_name: ${{github.event_name}}"
-          echo "github.ref: ${{github.ref}}"
-          echo "BUILD_STATE=successful"  >> $GITHUB_ENV
-      - name: Confirm Build State and Jira Key Values
-        if: always()
-        run: |
-          echo "BUILD_STATE: ${{env.BUILD_STATE}}"
-          echo "Jira Keys: ${{env.JIRA_KEYS}}"
-      - name: Failed Deployment
-        if: failure()
-        run: echo "BUILD_STATE=failed" >> $GITHUB_ENV
-      - name: Push Build Info to Jira
-        if: "${{ env.JIRA_KEYS != '' }}"
-        id: push_build_info_to_jira
-        uses: HighwayThree/jira-upload-build-info@master
-        with:
-          pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}'
-          client-id: '${{ secrets.JIRA_CLIENT_ID }}'
-          client-secret: '${{ secrets.JIRA_CLIENT_SECRET }}'
-          cloud-instance-base-url: 'https://celink.atlassian.net/'
-          issue-keys: "${{ env.JIRA_KEYS }}"
-          build-state: "${{ env.BUILD_STATE }}"
-          build-display-name: '${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}'
-          build-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
-          build-ref-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+      # - name: Confirm Build
+      #   run: |
+      #     echo "Planning ${{ inputs.TF_VAR_stage }}..."
+      #     echo "github.event_name: ${{github.event_name}}"
+      #     echo "github.ref: ${{github.ref}}"
+      #     echo "BUILD_STATE=successful"  >> $GITHUB_ENV
+      # - name: Confirm Build State and Jira Key Values
+      #   if: always()
+      #   run: |
+      #     echo "BUILD_STATE: ${{env.BUILD_STATE}}"
+      #     echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      # - name: Failed Deployment
+      #   if: failure()
+      #   run: echo "BUILD_STATE=failed" >> $GITHUB_ENV
+      # - name: Push Build Info to Jira
+      #   if: "${{ env.JIRA_KEYS != '' }}"
+      #   id: push_build_info_to_jira
+      #   uses: HighwayThree/jira-upload-build-info@master
+      #   with:
+      #     pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}'
+      #     client-id: '${{ secrets.JIRA_CLIENT_ID }}'
+      #     client-secret: '${{ secrets.JIRA_CLIENT_SECRET }}'
+      #     cloud-instance-base-url: 'https://celink.atlassian.net/'
+      #     issue-keys: "${{ env.JIRA_KEYS }}"
+      #     build-state: "${{ env.BUILD_STATE }}"
+      #     build-display-name: '${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}'
+      #     build-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
+      #     build-ref-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
   terragrunt-apply:
     # START CONFIGURATION
     name: "Terragrunt Apply"
@@ -212,20 +212,20 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - name: Parse Jira Keys from Commit
-        id: jira_keys
-        if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
-        with:
-          is-pull-request: ${{ github.event_name == 'pull_request' }}
-          parse-all-commits: ${{ github.event_name == 'push' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Format Jira Keys
-        run: |
-          JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
-          echo "${JIRA_KEYS}" >> .tmp_jira_keys
-          echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
+      # - name: Parse Jira Keys from Commit
+      #   id: jira_keys
+      #   if: always()
+      #   uses: HighwayThree/jira-extract-issue-keys@master
+      #   with:
+      #     is-pull-request: ${{ github.event_name == 'pull_request' }}
+      #     parse-all-commits: ${{ github.event_name == 'push' }}
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # - name: Format Jira Keys
+      #   run: |
+      #     JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
+      #     echo "${JIRA_KEYS}" >> .tmp_jira_keys
+      #     echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         uses: actions/download-artifact@v3
@@ -242,12 +242,12 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      - name: Clear Files
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf "/usr/local/share/boost"
-          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+      # - name: Clear Files
+      #   run: |
+      #     sudo rm -rf /usr/share/dotnet
+      #     sudo rm -rf /opt/ghc
+      #     sudo rm -rf "/usr/local/share/boost"
+      #     sudo rm -rf "$AGENT_TOOLSDIRECTORY"
       - name: Setup Terraform          
         uses: hashicorp/setup-terraform@v2.0.3
         with:
@@ -265,40 +265,40 @@ jobs:
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM == '') }}
         run: terragrunt run-all apply --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
         working-directory: ${{ env.TF_WORKING_DIR }}
-      - name: Confirm Deploy
-        run: |
-          echo "Deploying to ${{ inputs.TF_VAR_stage }}..."
-          echo "github.event_name: ${{github.event_name}}"
-          echo "github.ref: ${{github.ref}}"
-          echo "DEPLOY_STATE=successful"  >> $GITHUB_ENV
-      - name: Confirm Deploy State and Jira Key Values
-        if: always()
-        run: |
-          echo "DEPLOY_STATE: ${{env.DEPLOY_STATE}}"
-          echo "Jira Keys: ${{env.JIRA_KEYS}}"
-      - name: Failed Deployment
-        if: failure()
-        run: echo "DEPLOY_STATE=failed" >> $GITHUB_ENV
-      - name: Push Deployment Info to Jira
-        if: "${{ env.JIRA_KEYS != '' }}"
-        id: push_deployment_info_to_jira
-        uses: HighwayThree/jira-upload-deployment-info@master
-        with:
-          client-id: "${{ secrets.JIRA_CLIENT_ID }}"
-          client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
-          cloud-instance-base-url: "https://celink.atlassian.net/"
-          deployment-sequence-number: "${{ github.run_id }}"
-          update-sequence-number: "${{ github.run_id }}"
-          issue-keys: "${{ env.JIRA_KEYS }}"
-          display-name: "${{ inputs.TF_VAR_stage }} Run ID #${{github.run_id}}"
-          url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
-          description: "${{ inputs.TF_VAR_stage }} Deployment"
-          last-updated: "${{github.event.head_commit.timestamp}}"
-          label: "${{ inputs.TF_VAR_stage }} Deployment Label"
-          state: "${{env.DEPLOY_STATE}}"
-          pipeline-id: "${{ github.repository }} ${{ github.workflow }}"
-          pipeline-display-name: "${{ github.workflow }} (#${{ github.run_number }})"
-          pipeline-url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
-          environment-id: "${{ inputs.TF_VAR_stage }}"
-          environment-display-name: "${{ inputs.TF_VAR_stage }}"
-          environment-type: "${{ env.JIRA_ENV_TYPE }}"
+      # - name: Confirm Deploy
+      #   run: |
+      #     echo "Deploying to ${{ inputs.TF_VAR_stage }}..."
+      #     echo "github.event_name: ${{github.event_name}}"
+      #     echo "github.ref: ${{github.ref}}"
+      #     echo "DEPLOY_STATE=successful"  >> $GITHUB_ENV
+      # - name: Confirm Deploy State and Jira Key Values
+      #   if: always()
+      #   run: |
+      #     echo "DEPLOY_STATE: ${{env.DEPLOY_STATE}}"
+      #     echo "Jira Keys: ${{env.JIRA_KEYS}}"
+      # - name: Failed Deployment
+      #   if: failure()
+      #   run: echo "DEPLOY_STATE=failed" >> $GITHUB_ENV
+      # - name: Push Deployment Info to Jira
+      #   if: "${{ env.JIRA_KEYS != '' }}"
+      #   id: push_deployment_info_to_jira
+      #   uses: HighwayThree/jira-upload-deployment-info@master
+      #   with:
+      #     client-id: "${{ secrets.JIRA_CLIENT_ID }}"
+      #     client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
+      #     cloud-instance-base-url: "https://celink.atlassian.net/"
+      #     deployment-sequence-number: "${{ github.run_id }}"
+      #     update-sequence-number: "${{ github.run_id }}"
+      #     issue-keys: "${{ env.JIRA_KEYS }}"
+      #     display-name: "${{ inputs.TF_VAR_stage }} Run ID #${{github.run_id}}"
+      #     url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+      #     description: "${{ inputs.TF_VAR_stage }} Deployment"
+      #     last-updated: "${{github.event.head_commit.timestamp}}"
+      #     label: "${{ inputs.TF_VAR_stage }} Deployment Label"
+      #     state: "${{env.DEPLOY_STATE}}"
+      #     pipeline-id: "${{ github.repository }} ${{ github.workflow }}"
+      #     pipeline-display-name: "${{ github.workflow }} (#${{ github.run_number }})"
+      #     pipeline-url: "${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}"
+      #     environment-id: "${{ inputs.TF_VAR_stage }}"
+      #     environment-display-name: "${{ inputs.TF_VAR_stage }}"
+      #     environment-type: "${{ env.JIRA_ENV_TYPE }}"
