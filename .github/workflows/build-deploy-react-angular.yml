@@ -104,11 +104,11 @@ jobs:
     # END CONFIGURATION
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
+        uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
           parse-all-commits: ${{ github.event_name == 'push' }}
@@ -141,7 +141,7 @@ jobs:
           echo "github.ref: ${{github.ref}}"
           echo "BUILD_STATE=successful"  >> $GITHUB_ENV
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
           path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
@@ -156,7 +156,7 @@ jobs:
       - name: Push Build Info to Jira
         if: "${{ env.JIRA_KEYS != '' }}" 
         id: push_build_info_to_jira
-        uses: HighwayThree/jira-upload-build-info@master
+        uses: gravicore/jira-upload-build-info@master
         with:
           pipeline-id: "${{ github.repository }} ${{ github.workflow }} ${{ env.DEPLOYMENT_STAGE }}"
           client-id: "${{ secrets.JIRA_CLIENT_ID }}"
@@ -184,7 +184,7 @@ jobs:
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
+        uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
           parse-all-commits: ${{ github.event_name == 'push' }}
@@ -196,12 +196,12 @@ jobs:
           echo "${JIRA_KEYS}" >> .tmp_jira_keys
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
       - name: Download Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: ${{ inputs.DOWNLOAD_ARTIFACT_NAME }}
-          path: ${{ inputs.DOWNLOAD_ARTIFACT_PATH }}
+          pattern: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          merge-multiple: true
       - name: Configure AWS credentials from Account
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY}}
@@ -226,7 +226,7 @@ jobs:
       - name: Push Deployment Info to Jira
         if: "${{ env.JIRA_KEYS != '' }}"
         id: push_deployment_info_to_jira
-        uses: HighwayThree/jira-upload-deployment-info@master
+        uses: gravicore/jira-upload-deployment-info@master
         with:
           client-id: "${{ secrets.JIRA_CLIENT_ID }}"
           client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"

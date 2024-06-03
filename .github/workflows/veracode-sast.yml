@@ -76,12 +76,12 @@ jobs:
     steps:
       - name: Checkout Stg
         if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
         if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: create folder dist
         run: mkdir dist
       - name: install zip
@@ -99,10 +99,10 @@ jobs:
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v4 # Make java accessible on path so the uploadandscan action can run.
         with: 
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '${{ inputs.JAVA_VERSION }}'
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
@@ -134,14 +134,14 @@ jobs:
     steps:
       - name: Checkout Stg
         if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
         if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}      
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up JDK '${{ inputs.JAVA_VERSION }}'
-        uses: actions/setup-java@v3.8.0
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '${{ inputs.JAVA_VERSION }}'
@@ -191,12 +191,12 @@ jobs:
     steps:    
       - name: Checkout Stg
         if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
         if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - uses: actions/setup-node@v3
         with:
           node-version: ${{inputs.NODE_VERSION}}
@@ -259,10 +259,10 @@ jobs:
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v4 # Make java accessible on path so the uploadandscan action can run.
         with: 
           distribution: 'temurin'
-          java-version: '8'
+          java-version: '${{ inputs.JAVA_VERSION }}'
       - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ ( inputs.DEPLOYMENT_STAGE == 'stg' ) }}
         with:
