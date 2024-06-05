@@ -71,7 +71,8 @@ env:
 jobs:
   Veracode-SAST-Scan-Python:
     name: SAST Scan Python
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.PYTHON_INCLUDE == true) }}
+    if: ${{ inputs.PYTHON_INCLUDE == true }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Stg
@@ -129,7 +130,7 @@ jobs:
           appname: '${{ env.VERACODE_APP }}'
   Veracode-SAST-Scan-Java:    
     name: SAST Scan Java
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.JAVA_INCLUDE == true) }}
+    if: ${{ inputs.JAVA_INCLUDE == true }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Stg
@@ -186,7 +187,7 @@ jobs:
           appname: '${{ env.VERACODE_APP }}'
   Veracode-SAST-Scan-React-Angular:
     name: SAST Scan React/Angular
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.REACT_ANGULAR_INCLUDE == true) }}
+    if: ${{ inputs.REACT_ANGULAR_INCLUDE == true }}
     runs-on: ubuntu-latest
     steps:    
       - name: Checkout Stg
@@ -236,7 +237,7 @@ jobs:
   Veracode-SAST-Scan-DotNet:
     # START CONFIGURATION
     name: SAST-Scan-DotNet
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.DOTNET_INCLUDE == true) }}
+    if: ${{ inputs.DOTNET_INCLUDE == true }}
     # END CONFIGURATION
     runs-on: ubuntu-latest
     container: mcr.microsoft.com/dotnet/sdk:3.1-alpine
