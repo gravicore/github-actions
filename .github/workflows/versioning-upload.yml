@@ -63,7 +63,6 @@ env:
   PYTHON_VERSION: ${{ inputs.PYTHON_VERSION }}
 jobs:
   bump-version:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     name: Bump Version
     steps:
