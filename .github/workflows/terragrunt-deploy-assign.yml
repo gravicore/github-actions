@@ -207,7 +207,7 @@ jobs:
           pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}'
           client-id: '${{ secrets.JIRA_CLIENT_ID }}'
           client-secret: '${{ secrets.JIRA_CLIENT_SECRET }}'
-          cloud-instance-base-url: '${{ ATLASSIAN_URL }}'
+          cloud-instance-base-url: '${{ inputs.ATLASSIAN_URL }}'
           issue-keys: "${{ env.JIRA_KEYS }}"
           build-state: "${{ env.BUILD_STATE }}"
           build-display-name: '${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}'
@@ -312,7 +312,7 @@ jobs:
         with:
           client-id: "${{ secrets.JIRA_CLIENT_ID }}"
           client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
-          cloud-instance-base-url: "${{ ATLASSIAN_URL }}"
+          cloud-instance-base-url: "${{ inputs.ATLASSIAN_URL }}"
           deployment-sequence-number: "${{ github.run_id }}"
           update-sequence-number: "${{ github.run_id }}"
           issue-keys: "${{ env.JIRA_KEYS }}"
