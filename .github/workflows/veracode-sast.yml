@@ -32,7 +32,7 @@ on:
       DEPLOYMENT_STAGE:       # stg, prd
         required: false
         type: string
-      REPOSITORY_NAME:        # cel-borrower
+      REPOSITORY_NAME:        
         required: false
         type: string
       JAVA_VERSION:  

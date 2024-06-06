@@ -8,7 +8,7 @@ on:
       DEPLOYMENT_STAGE:    ## stg, prd
         required: true
         type: string
-      NAMESPACE:           ## cel
+      NAMESPACE:           
         required: true
         type: string
       ENVIRONMENT:         # srv, client, borrower
