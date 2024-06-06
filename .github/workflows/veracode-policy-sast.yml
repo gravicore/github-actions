@@ -20,6 +20,9 @@ on:
       JAVA_INCLUDE:
         required: false
         type: boolean
+      DOTNET_INCLUDE:           # true/false
+        required: false
+        type: boolean
       REACT_ANGULAR_INCLUDE:
         required: false
         type: boolean
@@ -35,6 +38,27 @@ on:
       JAVA_VERSION:  
         required: false
         type: number
+      MKDIR_AND_CP_TO_UPLOAD_DIR:  # mkdir dist && cp java/*/target/*.jar dist
+        required: false
+        type: string
+      NODE_VERSION:
+        required: false
+        type: string
+      SOLUTION_NAME:
+        required: false
+        type: string
+      DEBUG_OPTION:
+        required: false
+        type: boolean
+      DEBUG_TYPE:
+        required: false
+        type: string
+      BUILD_FILE_TYPE:
+        required: false
+        type: string
+      PUBLISH_FILE_TYPE:
+        required: false
+        type: string
     secrets:
       VERACODE_API_ID:
         required: true
@@ -42,7 +66,6 @@ on:
         required: true
 env:
   VERACODE_APP: ${{ inputs.VERACODE_APP }}
-  lambda_load_artifact_script: mkdir dist && cp -v *.{jar,war,ear} dist
   MVN_RUN: ${{ inputs.MVN_RUN }}
 
 jobs:
@@ -52,7 +75,7 @@ jobs:
     if: inputs.PYTHON_INCLUDE == true
     steps:
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: create folder dist
         run: mkdir dist
       - name: install zip
@@ -70,10 +93,11 @@ jobs:
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v1 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
         with: 
+          distribution: 'temurin'
           java-version: '8'
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -90,13 +114,14 @@ jobs:
     if: inputs.JAVA_INCLUDE == true
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up JDK '${{ inputs.JAVA_VERSION }}'
-        uses: actions/setup-java@v1
+        uses: actions/setup-java@v3.8.0
         with:
+          distribution: 'temurin'
           java-version: '${{ inputs.JAVA_VERSION }}'
       - name: Cache Maven
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -105,16 +130,17 @@ jobs:
         run: ${{ env.MVN_RUN }}
       - name: Move files to dist folder
         shell: bash
-        run: ${{ env.lambda_load_artifact_script }}
+        run: ${{ inputs.MKDIR_AND_CP_TO_UPLOAD_DIR }}
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v1 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
         with: 
+          distribution: 'temurin'
           java-version: '8'
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -126,24 +152,63 @@ jobs:
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
   Veracode-SAST-Scan-React-Angular:    
-    name: SAST Scan React
+    name: SAST Scan React/Angular
     runs-on: ubuntu-latest
     if: inputs.REACT_ANGULAR_INCLUDE == true
     steps:    
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Prepare Artifacts
-        shell: bash
-        run: zip -r ${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip src '*.asp' '*.css' '*.ehtml' '*.es' '*.es6' '*.handlebars' '*.hbs' '*.hjs' '*.htm' '*.html' '*.js' '*.jsx' '*.json' '*.jsp' '*.map' '*.mustache' '*.php' '*.ts' '*.tsx' '*.vue' '*.xhtml'
+        uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{inputs.NODE_VERSION}}
+      - name: Install Dependencies
+        run: yarn install
+      - name: Zip files
+        run: |
+          find . -type f \( -name "*.asp" -o -name "*.css" -o -name "*.ehtml" -o -name "*.es" -o -name "*.es6" -o -name "*.handlebars" -o -name "*.hbs" -o -name "*.hjs" -o -name "*.htm" -o -name "*.html" -o -name "*.js" -o -name "*.jsx" -o -name "*.json" -o -name "*.jsp" -o -name "*.map" -o -name "*.mustache" -o -name "*.php" -o -name "*.ts" -o -name "*.tsx" -o -name "*.vue" -o -name "*.xhtml" -o -name "npm-shrinkwrap.json" -o -name "package-lock.json" -o -name "package.json" -o -name "yarn.lock" \) -exec zip ${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip {} +
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
-      - uses: veracode/veracode-uploadandscan-action@0.2.2 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
-          filepath: '${{ env.REPOSITORY_NAME }}_${{ env.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
+          filepath: '${{ inputs.REPOSITORY_NAME }}_${{ inputs.DEPLOYMENT_STAGE }}_${{ github.run_id }}.zip'
+          vid: '${{ secrets.VERACODE_API_ID }}'
+          vkey: '${{ secrets.VERACODE_API_KEY }}'
+          exclude: '${{ inputs.VERACODE_EXCLUDE }}'
+          include: '${{ inputs.VERACODE_INCLUDE }}'
+          criticality: '${{ inputs.VERACODE_CRITICALITY }}'
+          appname: '${{ env.VERACODE_APP }}'
+  Veracode-SAST-Scan-DotNet:
+    # START CONFIGURATION
+    name: SAST-Scan-DotNet
+    if: inputs.DOTNET_INCLUDE == true
+    # END CONFIGURATION
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/dotnet/sdk:3.1-alpine
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: "Build"
+        run: |
+          apk add p7zip
+          dotnet restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}}
+          dotnet build --no-restore ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.BUILD_FILE_TYPE}} -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
+          dotnet publish --no-build ./${{inputs.SOLUTION_NAME}}/${{inputs.SOLUTION_NAME}}.${{inputs.PUBLISH_FILE_TYPE}} -o ./dist/${{inputs.SOLUTION_NAME}}/ -p:DebugType=${{inputs.DEBUG_TYPE}} -p:DebugSymbols=${{inputs.DEBUG_OPTION}}
+          cd ./dist/${{inputs.SOLUTION_NAME}}/ && 7z a -tzip ../app.zip .
+      - name: Gather time stamp
+        run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+      - name: Setup Java
+        uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
+        with: 
+          distribution: 'temurin'
+          java-version: '8'
+      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+        with:
+          version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
+          filepath: 'dist/app.zip'
           vid: '${{ secrets.VERACODE_API_ID }}'
           vkey: '${{ secrets.VERACODE_API_KEY }}'
           exclude: '${{ inputs.VERACODE_EXCLUDE }}'

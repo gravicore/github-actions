@@ -104,7 +104,7 @@ jobs:
     # END CONFIGURATION
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -122,7 +122,7 @@ jobs:
       - name: Echo Jira Keys
         run: |
           echo "Jira Keys: ${{env.JIRA_KEYS}}"
-      - uses: actions/setup-node@v2
+      - uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install Dependencies
@@ -141,7 +141,7 @@ jobs:
           echo "github.ref: ${{github.ref}}"
           echo "BUILD_STATE=successful"  >> $GITHUB_ENV
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
           path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}
@@ -196,12 +196,12 @@ jobs:
           echo "${JIRA_KEYS}" >> .tmp_jira_keys
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
       - name: Download Artifacts
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: ${{ inputs.DOWNLOAD_ARTIFACT_NAME }}
           path: ${{ inputs.DOWNLOAD_ARTIFACT_PATH }}
       - name: Configure AWS credentials from Account
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY}}
