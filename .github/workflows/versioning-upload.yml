@@ -8,7 +8,7 @@ on:
       DEPLOYMENT_STAGE:    ## stg, prd
         required: true
         type: string
-      NAMESPACE:           ## cel
+      NAMESPACE:           
         required: true
         type: string
       ENVIRONMENT:         # srv, client, borrower
@@ -41,6 +41,12 @@ on:
       NODE_VERSION:
         required: false
         type: number
+      PYTHON_VERSION:    # pypy3.9
+        required: false
+        type: string
+      UPLOAD_ARTIFACT_NAME:
+        required: false
+        type: string
     secrets:
       PRD_AWS_ACCESS_KEY_ID:
         required: false
@@ -54,23 +60,22 @@ env:
   PYTHON_INCLUDE: ${{ inputs.PYTHON_INCLUDE }}
   JAVA_INCLUDE: ${{ inputs.JAVA_INCLUDE }}
   NODE_VERSION: ${{ inputs.NODE_VERSION }}
-  PYTHON_VERSION: pypy3.9
+  PYTHON_VERSION: ${{ inputs.PYTHON_VERSION }}
 jobs:
   bump-version:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     name: Bump Version
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Bump version and push tag
         id: tag_version
-        uses: mathieudutour/github-tag-action@v6.1
+        uses: mathieudutour/github-tag-action@v6.2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           default_bump: minor
           release_branches: main
       - name: Create a GitHub release
-        uses: ncipollo/release-action@v1.12.0
+        uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.tag_version.outputs.new_tag }}
           name: ${{ steps.tag_version.outputs.new_tag }}
@@ -80,7 +85,7 @@ jobs:
       - name: artifact version tag
         run:  echo "versioning_new_tag=${{ steps.tag_version.outputs.new_tag }}" >> version_tag.txt
       - name: Upload Project Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: project-artifacts
           path: version_tag.txt
@@ -92,11 +97,12 @@ jobs:
     container: gravicore/alpine-node-aws-chamber
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Download Project Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts
+          pattern: project-artifacts
+          merge-multiple: true          
       - name: Variablize version tag
         run: cat version_tag.txt >> $GITHUB_ENV
       - name: create folder dist
@@ -108,7 +114,7 @@ jobs:
           apk add zip
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.PYTHON_INCLUDE == 'true') }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       - name: download veracode zip script
@@ -132,7 +138,7 @@ jobs:
         run: mkdir -p dist/${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}_${{ env.versioning_new_tag }}_$(echo ${GITHUB_SHA} | cut -c1-8)_${{ github.run_id }} && cp *.jar dist/${{ github.event.repository.name }}_${{ env.DEPLOYMENT_STAGE }}_${{ env.versioning_new_tag }}_$(echo ${GITHUB_SHA} | cut -c1-8)_${{ github.run_id }}
       - name: Configure AWS credentials from Account
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.PRD_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.PRD_AWS_ACCESS_KEY_SECRET}}
@@ -155,14 +161,15 @@ jobs:
     container: gravicore/alpine-node-aws-chamber
     steps:
       - name: Download Project Artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts
+          pattern: project-artifacts
+          merge-multiple: true          
       - name: Variablize version tag
         run: cat version_tag.txt >> $GITHUB_ENV
       - name: Checkout
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
       - name: Install Dependencies
@@ -186,7 +193,7 @@ jobs:
           mkdir dist && mv *.zip dist
       - name: Configure AWS credentials from Account
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') }}
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.PRD_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.PRD_AWS_ACCESS_KEY_SECRET}}

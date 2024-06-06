@@ -32,7 +32,7 @@ on:
       DEPLOYMENT_STAGE:       # stg, prd
         required: false
         type: string
-      REPOSITORY_NAME:        # cel-borrower
+      REPOSITORY_NAME:        
         required: false
         type: string
       JAVA_VERSION:  
@@ -71,17 +71,17 @@ env:
 jobs:
   Veracode-SAST-Scan-Python:
     name: SAST Scan Python
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.PYTHON_INCLUDE == true) }}
+    if: ${{ inputs.PYTHON_INCLUDE == true }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Stg
         if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
         if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: create folder dist
         run: mkdir dist
       - name: install zip
@@ -99,11 +99,11 @@ jobs:
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v4 # Make java accessible on path so the uploadandscan action can run.
         with: 
           distribution: 'temurin'
-          java-version: '8'
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+          java-version: '${{ inputs.JAVA_VERSION }}'
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -116,7 +116,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -129,24 +129,24 @@ jobs:
           appname: '${{ env.VERACODE_APP }}'
   Veracode-SAST-Scan-Java:    
     name: SAST Scan Java
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.JAVA_INCLUDE == true) }}
+    if: ${{ inputs.JAVA_INCLUDE == true }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Stg
         if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
         if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}      
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up JDK '${{ inputs.JAVA_VERSION }}'
-        uses: actions/setup-java@v3.8.0
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '${{ inputs.JAVA_VERSION }}'
       - name: Cache Maven
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -160,7 +160,7 @@ jobs:
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -173,7 +173,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -186,18 +186,18 @@ jobs:
           appname: '${{ env.VERACODE_APP }}'
   Veracode-SAST-Scan-React-Angular:
     name: SAST Scan React/Angular
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.REACT_ANGULAR_INCLUDE == true) }}
+    if: ${{ inputs.REACT_ANGULAR_INCLUDE == true }}
     runs-on: ubuntu-latest
     steps:    
       - name: Checkout Stg
         if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
         if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}
-        uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{inputs.NODE_VERSION}}
       - name: Install Dependencies
@@ -209,7 +209,7 @@ jobs:
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -222,7 +222,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -236,19 +236,19 @@ jobs:
   Veracode-SAST-Scan-DotNet:
     # START CONFIGURATION
     name: SAST-Scan-DotNet
-    if: ${{ (github.event.workflow_run.conclusion == 'success') && (inputs.DOTNET_INCLUDE == true) }}
+    if: ${{ inputs.DOTNET_INCLUDE == true }}
     # END CONFIGURATION
     runs-on: ubuntu-latest
     container: mcr.microsoft.com/dotnet/sdk:3.1-alpine
     steps:
       - name: Checkout Stg
         if: ${{ ( env.DEPLOYMENT_STAGE == 'stg') }}
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
       - name: Checkout Prd
         if: ${{ ( env.DEPLOYMENT_STAGE == 'prd') }}      
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: "Build"
         run: |
           apk add p7zip
@@ -259,11 +259,11 @@ jobs:
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v3.8.0 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v4 # Make java accessible on path so the uploadandscan action can run.
         with: 
           distribution: 'temurin'
-          java-version: '8'
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+          java-version: '${{ inputs.JAVA_VERSION }}'
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ ( inputs.DEPLOYMENT_STAGE == 'stg' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -276,7 +276,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.4 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.6 # Run the uploadandscan action. Inputs are described above.
         if: ${{ ( inputs.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'

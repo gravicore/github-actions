@@ -83,16 +83,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2.0.3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.2.0
+        uses: autero1/action-terragrunt@v3
         with:
-          terragrunt_version: ${{ env.TG_VERSION }}
+          terragrunt-version: ${{ env.TG_VERSION }}
       - name: Lint Terraform
         run: terraform fmt -recursive -check
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -101,9 +101,10 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts  
+          pattern: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          merge-multiple: true
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
@@ -125,8 +126,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - uses: dorny/paths-filter@v2
+        uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
         if: "github.ref != 'refs/heads/main'"
         id: filter
         with:
@@ -136,7 +137,7 @@ jobs:
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
+        uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
           parse-all-commits: ${{ github.event_name == 'push' }}
@@ -152,28 +153,29 @@ jobs:
           echo "Jira Keys: ${{env.JIRA_KEYS}}"
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts
+          pattern: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          merge-multiple: true
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2.0.3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
         if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
-        uses: autero1/action-terragrunt@v1.2.0
+        uses: autero1/action-terragrunt@v3
         with:
-          terragrunt_version: ${{ env.TG_VERSION }}
+          terragrunt-version: ${{ env.TG_VERSION }}
       - name: Validate Terraform
         if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         run: terragrunt validate
@@ -201,7 +203,7 @@ jobs:
       - name: Push Build Info to Jira
         if: ${{ (env.JIRA_KEYS != '') && (inputs.JIRA_TICKET_INFO == true) }}
         id: push_build_info_to_jira
-        uses: HighwayThree/jira-upload-build-info@master
+        uses: gravicore/jira-upload-build-info@master
         with:
           pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}'
           client-id: '${{ secrets.JIRA_CLIENT_ID }}'
@@ -226,8 +228,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
-      - uses: dorny/paths-filter@v2
+        uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
         if: "github.ref != 'refs/heads/main'"
         id: filter
         with:
@@ -237,7 +239,7 @@ jobs:
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
+        uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
           parse-all-commits: ${{ github.event_name == 'push' }}
@@ -250,14 +252,15 @@ jobs:
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts
+          pattern: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          merge-multiple: true
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
@@ -268,15 +271,15 @@ jobs:
           aws s3 sync ${{ inputs.SYNC_FROM }} ${{ inputs.SYNC_TO }} --delete
       - name: Setup Terraform          
         if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
-        uses: hashicorp/setup-terraform@v2.0.3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
         if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
-        uses: autero1/action-terragrunt@v1.2.0
+        uses: autero1/action-terragrunt@v3
         with:
-          terragrunt_version: ${{ env.TG_VERSION }}
+          terragrunt-version: ${{ env.TG_VERSION }}
       - name: Apply Terraform
         if: ${{steps.filter.outputs.rds == 'false' || steps.filter.outputs.rds == null}}
         run: terragrunt run-all apply --terragrunt-non-interactive --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
@@ -298,7 +301,7 @@ jobs:
       - name: Push Deployment Info to Jira
         if: ${{ (env.JIRA_KEYS != '') && (inputs.JIRA_TICKET_INFO == true) }}
         id: push_deployment_info_to_jira
-        uses: HighwayThree/jira-upload-deployment-info@master
+        uses: gravicore/jira-upload-deployment-info@master
         with:
           client-id: "${{ secrets.JIRA_CLIENT_ID }}"
           client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"

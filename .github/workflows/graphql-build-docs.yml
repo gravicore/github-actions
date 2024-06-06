@@ -30,13 +30,13 @@ jobs:
       image: gravicore/alpine-node-aws-chamber:latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install graphdoc
         run: npm install -g @2fd/graphdoc
       - name: Run graphdoc
         run: ${{ inputs.RUN_GRAPHDOC }}
       - name: Upload Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
           path: ${{ inputs.UPLOAD_ARTIFACT_PATH }}

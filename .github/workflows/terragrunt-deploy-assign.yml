@@ -35,6 +35,9 @@ on:
       NODE_VERSION:
         required: true
         type: string
+      ATLASSIAN_URL:
+        required: true
+        type: string
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
@@ -71,16 +74,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2.0.3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.2.0
+        uses: autero1/action-terragrunt@v3
         with:
-          terragrunt_version: ${{ env.TG_VERSION }}
+          terragrunt-version: ${{ env.TG_VERSION }}
       - name: Lint Terraform
         run: terraform fmt -recursive -check
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -89,9 +92,10 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts  
+          pattern: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          merge-multiple: true
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
@@ -112,9 +116,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
       - name: Verify Node.js installation
@@ -130,7 +134,7 @@ jobs:
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
+        uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
           parse-all-commits: ${{ github.event_name == 'push' }}
@@ -146,29 +150,30 @@ jobs:
           echo "Jira Keys: ${{env.JIRA_KEYS}}"
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts
+          pattern: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          merge-multiple: true
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
       - name: Setup AWS CLI
         uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2.0.3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.2.0
+        uses: autero1/action-terragrunt@v3
         with:
-          terragrunt_version: ${{ env.TG_VERSION }}
+          terragrunt-version: ${{ env.TG_VERSION }}
       - name: Validate Terraform
         run: terragrunt validate
         working-directory: ${{ env.TF_WORKING_DIR }}
@@ -197,12 +202,12 @@ jobs:
       - name: Push Build Info to Jira
         if: "${{ env.JIRA_KEYS != '' }}"
         id: push_build_info_to_jira
-        uses: HighwayThree/jira-upload-build-info@master
+        uses: gravicore/jira-upload-build-info@master
         with:
           pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}'
           client-id: '${{ secrets.JIRA_CLIENT_ID }}'
           client-secret: '${{ secrets.JIRA_CLIENT_SECRET }}'
-          cloud-instance-base-url: 'https://celink.atlassian.net/'
+          cloud-instance-base-url: '${{ ATLASSIAN_URL }}'
           issue-keys: "${{ env.JIRA_KEYS }}"
           build-state: "${{ env.BUILD_STATE }}"
           build-display-name: '${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}'
@@ -223,9 +228,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: '${{ env.NODE_VERSION }}'
       - name: Verify Node.js installation
@@ -241,7 +246,7 @@ jobs:
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
-        uses: HighwayThree/jira-extract-issue-keys@master
+        uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
           parse-all-commits: ${{ github.event_name == 'push' }}
@@ -254,29 +259,30 @@ jobs:
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
-          name: project-artifacts
+          pattern: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
+          merge-multiple: true
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
       - name: Setup AWS CLI
         uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1-node16
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
       - name: Setup Terraform          
-        uses: hashicorp/setup-terraform@v2.0.3
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
       - name: Setup Terragrunt
-        uses: autero1/action-terragrunt@v1.2.0
+        uses: autero1/action-terragrunt@v3
         with:
-          terragrunt_version: ${{ env.TG_VERSION }}
+          terragrunt-version: ${{ env.TG_VERSION }}
       - name: Apply Terraform
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM != '') }}
         run: terragrunt run-all apply --terragrunt-non-interactive --terragrunt-parallelism ${{ inputs.TERRAGRUNT_PARALLELISM }} --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
@@ -302,11 +308,11 @@ jobs:
       - name: Push Deployment Info to Jira
         if: "${{ env.JIRA_KEYS != '' }}"
         id: push_deployment_info_to_jira
-        uses: HighwayThree/jira-upload-deployment-info@master
+        uses: gravicore/jira-upload-deployment-info@master
         with:
           client-id: "${{ secrets.JIRA_CLIENT_ID }}"
           client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
-          cloud-instance-base-url: "https://celink.atlassian.net/"
+          cloud-instance-base-url: "${{ ATLASSIAN_URL }}"
           deployment-sequence-number: "${{ github.run_id }}"
           update-sequence-number: "${{ github.run_id }}"
           issue-keys: "${{ env.JIRA_KEYS }}"
