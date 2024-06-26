@@ -76,6 +76,7 @@ with ZipFile(zip_name, 'w') as py_zip:
             base_file_name_list.append(veracode_name)
 
 # Optionally, clean up extracted files
-shutil.rmtree(os.path.join(base_dir, 'extracted_zip_files'))
+if os.path.isdir(os.path.join(base_dir, 'extracted_zip_files')):
+    shutil.rmtree(os.path.join(base_dir, 'extracted_zip_files'))
 
 print(f"Created zip file: {zip_name}")
