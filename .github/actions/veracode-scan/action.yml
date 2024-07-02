@@ -1,0 +1,86 @@
+# action.yml
+name: "Veracode Scan"
+description: "Scan Veracode Artifacts"
+inputs:
+  technology:
+    required: true
+  source-dir:
+    required: false
+  build-command:
+    required: true
+    default: "echo 'No build command provided'"
+  ignore-files:
+    required: true
+    default: ""
+  ignore-dirs:
+    required: true
+    default: ""
+  ignore-patterns:
+    required: true
+    default: ""
+  java-version:
+    required: true
+    default: 18
+  vid:
+    required: true
+  vkey:
+    required: true
+  exclude:
+    required: true
+    exclude: ""
+  include:
+    required: true
+    default: "*"
+  criticality:
+    required: true
+    default: "High"
+  appname:
+    required: true
+outputs:
+  output-path:
+    description: "The path to the output artifact"
+    value: ${{ steps.move.outputs.output-path }}
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v2
+    - shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y zip unzip python3 jq
+    - if: ${{ inputs.technology == 'java' }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ inputs.java-version }}
+    - if: ${{ inputs.technology == 'java' }}
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    - id: technology
+      shell: bash
+      env:
+        TECHNOLOGY: ${{ inputs.technology }}
+        SOURCE_DIR: ${{ inputs.source-dir || inputs.technology }}
+        BUILD_COMMAND: ${{ inputs.build-command }}
+        IGNORE_FILES: ${{ inputs.ignore-files }}
+        IGNORE_DIRS: ${{ inputs.ignore-dirs }}
+        IGNORE_PATTERNS: ${{ inputs.ignore-patterns }}
+      run: |
+        ${{ github.action_path }}/technology/${TECHNOLOGY}/main.sh
+    - shell: bash
+      run: |
+        echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+    - if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') }}
+      uses: veracode/veracode-uploadandscan-action@0.2.6
+      with:
+        version: "RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}"
+        filepath: ${{ steps.technology.outputs.output-path }}
+        vid: ${{ inputs.vid }}
+        vkey: ${{ inputs.vkey }}
+        exclude: ${{ inputs.exclude }}
+        include: ${{ inputs.include }}
+        criticality: ${{ inputs.criticality }}
+        appname: ${{ inputs.appname }}
