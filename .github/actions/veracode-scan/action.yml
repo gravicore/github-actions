@@ -1,0 +1,97 @@
+# action.yml
+name: "Veracode Scan"
+description: "Scan Veracode Artifacts"
+inputs:
+  appname:
+    required: true
+    type: string
+  stage:
+    required: true
+    type: string
+    default: "stg"
+  vid:
+    required: true
+    type: string
+  vkey:
+    required: true
+    type: string
+  exclude:
+    required: false
+    type: string
+    default: ""
+  include:
+    required: false
+    type: string
+    default: "*"
+  criticality:
+    required: false
+    type: string
+    default: "High"
+  publish:
+    required: false
+    type: boolean
+    default: true
+env:
+  DEFAULT_JAVA_VERSION: 18
+  DEFAULT_NODE_VERSION: 18
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
+    - id: setup
+      shell: bash
+      run: |
+        sudo apt-get update && \
+        sudo apt-get install -y zip unzip python3 jq snap && \
+        sudo snap install yq
+        VERACODE=$(yq eval ".veracode" -o=json .github/setup.yml | jq -c .)
+        JAVA=$(echo ${VERACODE} | jq '.java != null')
+        REACT=$(echo ${VERACODE} | jq '.react != null')
+        echo "veracode=${VERACODE}" >> $GITHUB_OUTPUT
+        echo "java=${JAVA}" >> $GITHUB_OUTPUT
+        echo "react=${REACT}" >> $GITHUB_OUTPUT
+    - if: ${{ steps.setup.outputs.java == 'true' }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: temurin
+        java-version: ${{ fromJson(steps.setup.outputs.veracode).java.java-version || env.DEFAULT_JAVA_VERSION }}
+    - if: ${{ steps.setup.outputs.java == 'true' }}
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+    - if: ${{ steps.setup.outputs.react == 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ fromJson(steps.setup.outputs.veracode).react.node-version || env.DEFAULT_NODE_VERSION }}
+    - shell: bash
+      run: |
+        VERACODE='${{ steps.setup.outputs.veracode }}'
+        DIRNAME="${{ github.action_path }}/technology"
+        echo ${VERACODE} | jq -r 'to_entries[] | "\(.key) \(.value)"' | while read key value; do
+          echo "--> [${key}] package started"
+          source ${DIRNAME}/environment.sh "${key}" "${value}"
+          ${DIRNAME}/${TECHNOLOGY}/main.sh
+          echo "--> [${key}] package created"
+        done
+        echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
+    - uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist/
+    - if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') && inputs.publish == 'true' }}
+      uses: veracode/veracode-uploadandscan-action@0.2.6
+      with:
+        appname: ${{ inputs.appname }}
+        createsandbox: ${{ inputs.stage == 'prd' && 'false' || 'true' }}
+        sandboxname: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
+        criticality: ${{ inputs.criticality }}
+        exclude: ${{ inputs.exclude }}
+        filepath: dist/
+        include: ${{ inputs.include }}
+        version: "RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}"
+        vid: ${{ inputs.vid }}
+        vkey: ${{ inputs.vkey }}
