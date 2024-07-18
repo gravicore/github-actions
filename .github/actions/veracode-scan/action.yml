@@ -9,6 +9,10 @@ inputs:
     required: true
     type: string
     default: "stg"
+  token:
+    required: false
+    type: string
+    default: ""
   vid:
     required: true
     type: string
@@ -46,23 +50,18 @@ runs:
         sudo apt-get update && \
         sudo apt-get install -y zip unzip python3 jq snap && \
         sudo snap install yq
-        VERACODE=$(yq eval ".veracode" -o=json .github/setup.yml | jq -c .)
+        VERACODE=$(yq eval ".veracode" -o=json .github/setup.yml | jq -c . | sed 's/\\n/\\\\n/g')
         JAVA=$(echo ${VERACODE} | jq '.java != null')
         REACT=$(echo ${VERACODE} | jq '.react != null')
         echo "veracode=${VERACODE}" >> $GITHUB_OUTPUT
         echo "java=${JAVA}" >> $GITHUB_OUTPUT
         echo "react=${REACT}" >> $GITHUB_OUTPUT
     - if: ${{ steps.setup.outputs.java == 'true' }}
-      uses: actions/setup-java@v4
+      uses: gravicore/github-actions/.github/actions/setup-java@RSEM-528-setup-maven
       with:
-        distribution: temurin
-        java-version: ${{ fromJson(steps.setup.outputs.veracode).java.java-version || env.DEFAULT_JAVA_VERSION }}
-    - if: ${{ steps.setup.outputs.java == 'true' }}
-      uses: actions/cache@v4
-      with:
-        path: ~/.m2
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        organization: ${{ github.repository_owner }}
+        password: ${{ inputs.token }}
+        version: ${{ fromJson(steps.setup.outputs.veracode).java.java-version || env.DEFAULT_JAVA_VERSION }}
     - if: ${{ steps.setup.outputs.react == 'true' }}
       uses: actions/setup-node@v4
       with:

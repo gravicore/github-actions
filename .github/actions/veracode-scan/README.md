@@ -37,7 +37,8 @@ veracode:
     source-dir: java # optional
     java-version: 17 # optional, defaults to 18
     build-command: mvn # required, supports multiline
-      clean package # "-f java" not needed, will use the source-dir by default
+      clean package -f java
+    ignore-patterns: "*test*.jar" # optional, comma separated, supports multiline
 ```
 
 How to use with **React**
