@@ -41,10 +41,16 @@ env:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    - id: execution
+      shell: bash
+      run: |
+        echo "continue=${{ (github.event.workflow_run && github.event.workflow_run.conclusion == 'success') || (!github.event.workflow_run) }}" >> $GITHUB_OUTPUT
+    - if: ${{ steps.execution.outputs.continue == 'true' }}
+      uses: actions/checkout@v4
       with:
         ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
-    - id: setup
+    - if: ${{ steps.execution.outputs.continue == 'true' }}
+      id: setup
       shell: bash
       run: |
         sudo apt-get update && \
@@ -56,17 +62,18 @@ runs:
         echo "veracode=${VERACODE}" >> $GITHUB_OUTPUT
         echo "java=${JAVA}" >> $GITHUB_OUTPUT
         echo "react=${REACT}" >> $GITHUB_OUTPUT
-    - if: ${{ steps.setup.outputs.java == 'true' }}
+    - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.java == 'true' }}
       uses: gravicore/github-actions/.github/actions/setup-java@main
       with:
         organization: ${{ github.repository_owner }}
         password: ${{ inputs.token }}
         version: ${{ fromJson(steps.setup.outputs.veracode).java.java-version || env.DEFAULT_JAVA_VERSION }}
-    - if: ${{ steps.setup.outputs.react == 'true' }}
+    - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.react == 'true' }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ fromJson(steps.setup.outputs.veracode).react.node-version || env.DEFAULT_NODE_VERSION }}
-    - shell: bash
+    - if: ${{ steps.execution.outputs.continue == 'true' }}
+      shell: bash
       run: |
         VERACODE='${{ steps.setup.outputs.veracode }}'
         DIRNAME="${{ github.action_path }}/technology"
@@ -77,11 +84,12 @@ runs:
           echo "--> [${key}] package created"
         done
         echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
-    - uses: actions/upload-artifact@v4
+    - if: ${{ steps.execution.outputs.continue == 'true' }}
+      uses: actions/upload-artifact@v4
       with:
         name: dist
         path: dist/
-    - if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') && inputs.publish == 'true' }}
+    - if: ${{ steps.execution.outputs.continue == 'true' && (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') && inputs.publish == 'true' }}
       uses: veracode/veracode-uploadandscan-action@0.2.6
       with:
         appname: ${{ inputs.appname }}
