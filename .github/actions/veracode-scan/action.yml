@@ -102,3 +102,7 @@ runs:
         version: "RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}"
         vid: ${{ inputs.vid }}
         vkey: ${{ inputs.vkey }}
+        scanallnonfataltoplevelmodules: true
+        deleteincompletescan: 2
+        scanpollinginterval: 30
+        debug: true
