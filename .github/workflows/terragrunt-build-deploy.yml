@@ -1,11 +1,11 @@
 name: "terragrunt-build-deploy"
 on:
   workflow_call:
-    inputs:                           ## inputs if "required" MUST be in caller workflow 
-      TF_VAR_stage:                   ## dev, stg, or prd
+    inputs: ## inputs if "required" MUST be in caller workflow
+      TF_VAR_stage: ## dev, stg, or prd
         required: true
         type: string
-      JIRA_ENV_TYPE:                  ## development, staging, or production
+      JIRA_ENV_TYPE: ## development, staging, or production
         required: true
         type: string
       TERRAGRUNT_PARALLELISM:
@@ -19,10 +19,10 @@ on:
         type: string
       TF_WORKING_DIR:
         required: true
-        type: string            
+        type: string
       TERRAFORM_PRE_APPLY_SUBFOLDERS:
         required: true
-        type: string            
+        type: string
       TERRAGRUNT_LOG_LEVEL:
         required: true
         type: string
@@ -32,7 +32,7 @@ on:
       LAMBDA_MOVE_ARTIFACT_SCRIPT:
         required: false
         type: string
-      RUNNER: 
+      RUNNER:
         required: true
         type: string
       UPLOAD_ARTIFACT_NAME:
@@ -144,7 +144,7 @@ jobs:
           merge-multiple: true
       - name: Move to dist
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
-        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
+        run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
       - name: Setup AWS CLI
         uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
@@ -172,7 +172,7 @@ jobs:
       - name: Plan Terraform Parallel
         if: ${{ ( inputs.TERRAGRUNT_PARALLELISM != '0') }}
         run: terragrunt run-all plan --terragrunt-non-interactive --terragrunt-parallelism ${{ inputs.TERRAGRUNT_PARALLELISM }} --terragrunt-log-level ${{ env.TERRAGRUNT_LOG_LEVEL }}
-        working-directory: ${{ env.TF_WORKING_DIR }} 
+        working-directory: ${{ env.TF_WORKING_DIR }}
       - name: Confirm Build
         run: |
           echo "Planning ${{ inputs.TF_VAR_stage }}..."
@@ -192,13 +192,13 @@ jobs:
         id: push_build_info_to_jira
         uses: gravicore/jira-upload-build-info@master
         with:
-          pipeline-id: '${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}'
-          client-id: '${{ secrets.JIRA_CLIENT_ID }}'
-          client-secret: '${{ secrets.JIRA_CLIENT_SECRET }}'
-          cloud-instance-base-url: '${{ inputs.ATLASSIAN_URL }}'
+          pipeline-id: "${{ github.repository }} ${{ github.workflow }} ${{ inputs.TF_VAR_stage }}"
+          client-id: "${{ secrets.JIRA_CLIENT_ID }}"
+          client-secret: "${{ secrets.JIRA_CLIENT_SECRET }}"
+          cloud-instance-base-url: "${{ inputs.ATLASSIAN_URL }}"
           issue-keys: "${{ env.JIRA_KEYS }}"
           build-state: "${{ env.BUILD_STATE }}"
-          build-display-name: '${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}'
+          build-display-name: "${{ github.workflow }}: ${{ inputs.TF_VAR_stage }}"
           build-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
           build-ref-url: "https://github.com/${{github.repository}}/actions/runs/${{github.run_id}}"
   terragrunt-apply:
@@ -217,6 +217,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
       - name: Parse Jira Keys from Commit
         id: jira_keys
         if: always()
@@ -248,7 +251,7 @@ jobs:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
-      - name: Setup Terraform          
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
