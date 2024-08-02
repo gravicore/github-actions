@@ -51,6 +51,18 @@ veracode:
     node-version: 17 # optional, defaults to 18
 ```
 
+How to use with **.NET**
+
+```
+# .github/setup.yml
+veracode:
+  dotnet:
+    source-dir: dotnet # optional
+    dotnet-version: 8.0 # optional, defaults to 8.0
+    build-type: sln # required
+    publish-type: sln # required, one of sln, csproj
+```
+
 How to use with **Java**, **Python** and **React**
 
 ```
@@ -63,5 +75,8 @@ veracode:
     params...
   react:
     node-version: 16
+    params...
+  dotnet:
+    dotnet-version: 8.0
     params...
 ```
