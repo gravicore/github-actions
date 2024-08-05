@@ -35,9 +35,14 @@ inputs:
     required: false
     type: boolean
     default: true
+  module:
+    required: false
+    type: string
+    default: ""
 env:
   DEFAULT_JAVA_VERSION: 18
   DEFAULT_NODE_VERSION: 18
+  DEFAULT_DOTNET_VERSION: "8.0"
 runs:
   using: "composite"
   steps:
@@ -56,12 +61,18 @@ runs:
         sudo apt-get update && \
         sudo apt-get install -y zip unzip python3 jq snap && \
         sudo snap install yq
-        VERACODE=$(yq eval ".veracode" -o=json .github/setup.yml | jq -c . | sed 's/\\n/\\\\n/g')
+        VERACODE=$(yq eval ".veracode" -o=json .github/setup${{ inputs.module != '' && format('-{0}', inputs.module) || '' }}.yml | jq -c . | sed 's/\\n/\\\\n/g')
         JAVA=$(echo ${VERACODE} | jq '.java != null')
         REACT=$(echo ${VERACODE} | jq '.react != null')
+        DOTNET=$(echo ${VERACODE} | jq '.dotnet != null')
         echo "veracode=${VERACODE}" >> $GITHUB_OUTPUT
         echo "java=${JAVA}" >> $GITHUB_OUTPUT
         echo "react=${REACT}" >> $GITHUB_OUTPUT
+        echo "dotnet=${DOTNET}" >> $GITHUB_OUTPUT
+    - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.dotnet == 'true' }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: "${{ fromJson(steps.setup.outputs.veracode).dotnet.dotnet-version || env.DEFAULT_DOTNET_VERSION }}"
     - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.java == 'true' }}
       uses: gravicore/github-actions/.github/actions/setup-java@main
       with:
@@ -74,6 +85,8 @@ runs:
         node-version: ${{ fromJson(steps.setup.outputs.veracode).react.node-version || env.DEFAULT_NODE_VERSION }}
     - if: ${{ steps.execution.outputs.continue == 'true' }}
       shell: bash
+      env:
+        DEFAULT_MODULE: "${{ inputs.module }}"
       run: |
         VERACODE='${{ steps.setup.outputs.veracode }}'
         DIRNAME="${{ github.action_path }}/technology"
@@ -89,7 +102,7 @@ runs:
       with:
         name: dist
         path: dist/
-    - if: ${{ steps.execution.outputs.continue == 'true' && (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') && inputs.publish == 'true' }}
+    - if: ${{ steps.execution.outputs.continue == 'true' && ((hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') || steps.setup.outputs.dotnet == 'true') && inputs.publish == 'true' }}
       uses: veracode/veracode-uploadandscan-action@0.2.6
       with:
         appname: ${{ inputs.appname }}
