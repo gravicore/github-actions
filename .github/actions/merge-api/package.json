@@ -1,0 +1,36 @@
+{
+  "name": "merge-api",
+  "version": "1.0.0",
+  "description": "Merge an AppSync API into an AppSync Merged API",
+  "main": "index.js",
+  "scripts": {
+    "lint": "eslint **.js",
+    "package": "ncc build index.js -o dist",
+    "test": "eslint **.js && jest --coverage"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gravicore/github-actions.git"
+  },
+  "keywords": [
+    "actions",
+    "appsync",
+    "aws",
+    "github",
+    "node",
+    "ssm"
+  ],
+  "author": "Darlan Silveira <darlan.silveira@gravicore.io> (https://gravicore.io/)",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@actions/core": "^1.9.1",
+    "@aws-sdk/client-appsync": "^3.624.0",
+    "@aws-sdk/client-ssm": "^3.628.0",
+    "yaml": "^2.2.2"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.34.0",
+    "eslint": "^8.26.0",
+    "jest": "^29.2.2"
+  }
+}

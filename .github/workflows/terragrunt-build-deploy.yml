@@ -41,6 +41,10 @@ on:
       ATLASSIAN_URL:
         required: true
         type: string
+      APPSYNC_MERGE:
+        required: false
+        type: string
+        default: ""
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
@@ -212,6 +216,9 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     environment:
       name: ${{ inputs.TF_VAR_stage }}
+    outputs:
+      source: ${{ steps.appsync_merge.outputs.source }}
+      target: ${{ steps.appsync_merge.outputs.target }}
     # END CONFIGURATION
     runs-on: ${{ inputs.RUNNER }}
     steps:
@@ -305,3 +312,35 @@ jobs:
           environment-id: "${{ inputs.TF_VAR_stage }}"
           environment-display-name: "${{ inputs.TF_VAR_stage }}"
           environment-type: "${{ env.JIRA_ENV_TYPE }}"
+      - name: Set outputs for AppSync Merge
+        id: appsync_merge
+        if: inputs.APPSYNC_MERGE != ''
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          source=$(echo "${{ inputs.APPSYNC_MERGE }}" | yq ".source")
+          target=$(echo "${{ inputs.APPSYNC_MERGE }}" | yq ".target")
+          IFS="=" read -r source_module source_output <<< "$source"
+          IFS="=" read -r target_module target_output <<< "$target"
+          echo "Reading source from ${source}"
+          source_value=$(terragrunt run-all output --terragrunt-working-dir ${source_module} -raw ${source_output} --terragrunt-no-auto-init --terragrunt-non-interactive)
+          echo "Reading target from ${target}"
+          target_value=$(terragrunt run-all output --terragrunt-working-dir ${target_module} -raw ${target_output} --terragrunt-no-auto-init --terragrunt-non-interactive)
+          echo "source=${source_value}"
+          echo "source=${source_value}" >> "$GITHUB_OUTPUT"
+          echo "target=${target_value}"
+          echo "target=${target_value}" >> "$GITHUB_OUTPUT"
+
+  appsync-merge:
+    runs-on: ${{ inputs.RUNNER }}
+    name: "AppSync Merge"
+    needs: terragrunt-apply
+    if: inputs.APPSYNC_MERGE != ''
+    environment:
+      name: ${{ inputs.TF_VAR_stage }}
+    steps:
+      - uses: gravicore/github-actions/.github/actions/merge-api@GDEV-372-create-new-github-action-that-can-receive-two-parameters
+        with:
+          source: ${{ needs.terragrunt-apply.outputs.source }}
+          target: ${{ needs.terragrunt-apply.outputs.target }}
+          access_key_id: ${{ (secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID) }}
+          secret_access_key: ${{ (secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET) }}
