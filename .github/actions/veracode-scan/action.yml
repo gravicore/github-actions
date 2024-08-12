@@ -79,6 +79,7 @@ runs:
         organization: ${{ github.repository_owner }}
         password: ${{ inputs.token }}
         version: ${{ fromJson(steps.setup.outputs.veracode).java.java-version || env.DEFAULT_JAVA_VERSION }}
+        ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
     - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.react == 'true' }}
       uses: actions/setup-node@v4
       with:

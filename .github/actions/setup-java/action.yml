@@ -15,10 +15,16 @@ inputs:
     required: false
     type: string
     default: 17
+  ref:
+    required: false
+    type: string
+    default: ""
 runs:
   using: composite
   steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
     - uses: actions/setup-java@v1
       with:
         java-version: ${{ inputs.version }}
@@ -33,4 +39,3 @@ runs:
         sed -i 's/\${ORGANIZATION}/${{ inputs.organization }}/g' ~/.m2/settings.xml
         sed -i 's/\${MAVEN_USERNAME}/${{ inputs.username }}/g' ~/.m2/settings.xml
         sed -i 's/\${MAVEN_PASSWORD}/${{ inputs.password }}/g' ~/.m2/settings.xml
-      
