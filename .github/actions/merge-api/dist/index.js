@@ -62544,9 +62544,31 @@ async function mergeGraphqlApi(sourceId, targetId) {
   return associationId;
 }
 
+async function validateAssociation(sourceId, targetId) {
+  const client = getAWSClient(AppSyncClient);
+  const associations = [];
+  let nextToken = null;
+  do {
+    const response = await client.send(new ListSourceApiAssociationsCommand({
+      apiId: targetId,
+      nextToken,
+      maxResults: 20,
+    }));
+    associations.push(...response.sourceApiAssociationSummaries);
+    nextToken = response.nextToken;
+  } while(nextToken)
+  if ((associations.filter(association => association.sourceApiId === sourceId)).length > 0) {
+    throw {
+      $metadata: { httpStatusCode: 400 },
+      message: "SourceApiAssociation already exists.",
+    }
+  }
+}
+
 async function associateGraphqlApi(sourceId, targetId) {
   const client = getAWSClient(AppSyncClient);
   try {
+    await validateAssociation(sourceId, targetId);
     await client.send(new AssociateMergedGraphqlApiCommand({
       sourceApiIdentifier: sourceId,
       mergedApiIdentifier: targetId,
