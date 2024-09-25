@@ -5,12 +5,13 @@ on:
       REPOSITORY_NAME:        
         required: true
         type: string
-      SONAR_HOST_URL:  
+    secrets:
+      SONAR_HOST_URL:
         required: true
-        type: string
-      SONAR_TOKEN:  
+      SONAR_HOST_URL:
         required: true
-        type: string
+env:
+  REPOSITORY_NAME: ${{ env.REPOSITORY_NAME }}
 
 jobs:
   sonarqube:
