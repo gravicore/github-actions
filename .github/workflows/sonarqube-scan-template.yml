@@ -11,15 +11,7 @@ on:
       SONAR_TOKEN:  
         required: true
         type: number
-    secrets:
-      VERACODE_API_ID:
-        required: true
-      VERACODE_API_KEY:
-        required: true
-env:
-  VERACODE_APP: ${{ inputs.VERACODE_APP }}
-  MVN_RUN: ${{ inputs.MVN_RUN }}
-  DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
+
 
 jobs:
   sonarqube:
