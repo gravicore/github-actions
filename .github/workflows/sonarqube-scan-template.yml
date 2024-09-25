@@ -10,8 +10,6 @@ on:
         required: true
       SONAR_HOST_URL:
         required: true
-env:
-  REPOSITORY_NAME: ${{ env.REPOSITORY_NAME }}
 
 jobs:
   sonarqube:
