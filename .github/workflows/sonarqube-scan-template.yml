@@ -7,11 +7,10 @@ on:
         type: string
       SONAR_HOST_URL:  
         required: true
-        type: number
+        type: string
       SONAR_TOKEN:  
         required: true
-        type: number
-
+        type: string
 
 jobs:
   sonarqube:
@@ -26,7 +25,7 @@ jobs:
         run: |
           echo "This is a bash command"
           pwd
-          echo "REPO_NAME=${{ inputs.REPOSITORY_NAME ##*/ }}" >> $GITHUB_ENV
+          echo "REPO_NAME=${{ inputs.REPOSITORY_NAME }}" >> $GITHUB_ENV
           echo $REPO_NAME
       - name: Run Bash Command - create project Sonar
         run: |
@@ -63,8 +62,6 @@ jobs:
             -Dsonar.projectKey=$REPO_NAME
             -Dsonar.sources=.
             -Dsonar.exclusions=**/*.java
-
-
 
       - name: Display SonarQube Results
         run: |
