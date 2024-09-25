@@ -34,9 +34,11 @@ jobs:
           echo "This is a bash command"
           pwd
           echo "REPO_NAME=${{ inputs.REPOSITORY_NAME }}" >> $GITHUB_ENV
-          echo $REPO_NAME
+          echo "$REPO_NAME"
       - name: Run Bash Command - create project Sonar
         run: |
+          echo "$REPO_NAME"
+          echo $REPO_NAME
           PROJECT_KEY=$REPO_NAME
           PROJECT_NAME=$REPO_NAME
                     
