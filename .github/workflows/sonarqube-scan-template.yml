@@ -64,8 +64,8 @@ jobs:
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2.1.0
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: "https://sonar.dev-srv.celink.cloud"
+          SONAR_HOST_URL: "sqa_ee94435a703e107ee378d307f5869b27c2b8c86d"
         with:
           projectBaseDir: .
           args: >
