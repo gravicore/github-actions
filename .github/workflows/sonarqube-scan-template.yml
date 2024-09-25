@@ -1,0 +1,80 @@
+name: Sonar Scan
+on:
+  workflow_call:
+    inputs:                   ## inputs if "required" MUST be in caller workflow
+      REPOSITORY_NAME:        
+        required: true
+        type: string
+      SONAR_HOST_URL:  
+        required: true
+        type: number
+      SONAR_TOKEN:  
+        required: true
+        type: number
+    secrets:
+      VERACODE_API_ID:
+        required: true
+      VERACODE_API_KEY:
+        required: true
+env:
+  VERACODE_APP: ${{ inputs.VERACODE_APP }}
+  MVN_RUN: ${{ inputs.MVN_RUN }}
+  DEPLOYMENT_STAGE: ${{ inputs.DEPLOYMENT_STAGE }}
+
+jobs:
+  sonarqube:
+      runs-on: ubuntu-latest
+      steps:
+      - uses: actions/checkout@v4
+        with:
+          # Disabling shallow clones is recommended for improving the relevancy of reporting.
+          fetch-depth: 0
+
+      - name: Run Bash Command - Find Repo Name
+        run: |
+          echo "This is a bash command"
+          pwd
+          echo "REPO_NAME=${{ inputs.REPOSITORY_NAME ##*/ }}" >> $GITHUB_ENV
+          echo $REPO_NAME
+      - name: Run Bash Command - create project Sonar
+        run: |
+          PROJECT_KEY=$REPO_NAME
+          PROJECT_NAME=$REPO_NAME
+                    
+          # Step 1: Try to create a project in SonarQube
+          echo "Creating project in SonarQube..."
+          RESPONSE=$(curl -s -X POST "${{ secrets.SONAR_HOST_URL }}/api/projects/create" \
+              -u "${{ secrets.SONAR_TOKEN }}:" \
+              -d "project=${PROJECT_KEY}" \
+              -d "name=${PROJECT_NAME}")
+
+          # Step 2: Check for errors in the response
+          if echo "$RESPONSE" | grep -q "A similar key already exists:"; then
+              echo "Project '${PROJECT_KEY}' already exists."
+          else
+              # Check if the creation was successful
+              if echo "$RESPONSE" | grep -q "\"project\":{\"key\":\"${PROJECT_KEY}\""; then
+                  echo "Project created successfully."
+              else
+                  echo "Failed to create the project. Response: $RESPONSE"
+              fi
+          fi
+          
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=$REPO_NAME
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/*.java
+
+      - name: Display SonarQube Results
+        run: |
+          echo "SonarQube scan complete."
+          BASE_URL='https://yahoo.com/'
+         # FULL_URL=$BASE_URL$REPO_NAME
+          echo "[Visit SonarQube Results]($FULL_URL)"
