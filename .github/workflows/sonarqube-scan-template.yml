@@ -8,8 +8,11 @@ on:
     secrets:
       SONAR_HOST_URL:
         required: true
-      SONAR_HOST_URL:
+      SONAR_TOKEN:
         required: true
+env:
+  REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}  # Changed from env to inputs
+
 
 jobs:
   sonarqube:
