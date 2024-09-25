@@ -13,9 +13,9 @@ on:
         type: string
     secrets:
       SONAR_HOST_URL:
-        required: true
+        required: false
       SONAR_TOKEN:
-        required: true
+        required: false
 env:
   REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}  # Changed from env to inputs
 
