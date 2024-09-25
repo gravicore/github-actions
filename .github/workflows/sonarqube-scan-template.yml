@@ -72,6 +72,8 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.exclusions=**/*.java
 
+
+
       - name: Display SonarQube Results
         run: |
           echo "SonarQube scan complete."
