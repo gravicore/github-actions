@@ -6,10 +6,10 @@ on:
         required: true
         type: string
       SONAR_HOST_URL:        
-        required: false
+        required: true
         type: string
       SONAR_TOKEN:        
-        required: false
+        required: true
         type: string
     secrets:
       SONAR_HOST_URL:
@@ -44,8 +44,8 @@ jobs:
                     
           # Step 1: Try to create a project in SonarQube
           echo "Creating project in SonarQube..."
-          RESPONSE=$(curl -s -X POST "${{ secrets.SONAR_HOST_URL }}/api/projects/create" \
-              -u "${{ secrets.SONAR_TOKEN }}:" \
+          RESPONSE=$(curl -s -X POST "${{ inputs.SONAR_HOST_URL }}/api/projects/create" \
+              -u "${{ inputs.SONAR_TOKEN }}:" \
               -d "project=${PROJECT_KEY}" \
               -d "name=${PROJECT_NAME}")
 
@@ -64,8 +64,8 @@ jobs:
       - name: SonarQube Scan
         uses: sonarsource/sonarqube-scan-action@v2.1.0
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ inputs.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
         with:
           projectBaseDir: .
           args: >
