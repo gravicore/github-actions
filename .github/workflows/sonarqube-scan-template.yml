@@ -6,20 +6,11 @@ on:
       REPOSITORY_NAME:        
         required: true
         type: string
-      SONAR_HOST_URL:        
-        required: false
-        type: string
-      SONAR_TOKEN:        
-        required: false
-        type: string
     secrets:
       SONAR_HOST_URL:
         required: true
       SONAR_TOKEN:
         required: true
-
-env:
-  REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}  # Reference input
 
 jobs:
   sonarqube:
@@ -66,3 +57,10 @@ jobs:
             -Dsonar.projectKey=$REPO_NAME
             -Dsonar.sources=.
             -Dsonar.exclusions=**/*.java
+
+      - name: Display SonarQube Results
+        run: |
+          echo "SonarQube scan complete."
+          BASE_URL='${{ var.SONAR_HOST_URL }}/dashboard?id='
+          FULL_URL=$BASE_URL$REPO_NAME
+          echo "[Visit SonarQube Results]($FULL_URL)"
