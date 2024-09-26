@@ -1,4 +1,5 @@
 name: Sonar Scan
+
 on:
   workflow_call:
     inputs:
@@ -13,7 +14,7 @@ on:
         type: string
 
 env:
-  REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}
+  REPOSITORY_NAME: ${{ inputs.REPOSITORY_NAME }}  # Reference input
 
 jobs:
   sonarqube:
