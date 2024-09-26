@@ -62,6 +62,6 @@ jobs:
       - name: Display SonarQube Results
         run: |
           echo "SonarQube scan complete."
-          BASE_URL='${{ var.SONAR_HOST_URL }}/dashboard?id='
+          BASE_URL='${{ inputs.SONAR_HOST_URL }}/dashboard?id='
           FULL_URL=$BASE_URL$REPO_NAME
           echo "[Visit SonarQube Results]($FULL_URL)"
