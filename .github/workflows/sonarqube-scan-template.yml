@@ -7,10 +7,10 @@ on:
         required: true
         type: string
       SONAR_HOST_URL:        
-        required: true
+        required: false
         type: string
       SONAR_TOKEN:        
-        required: true
+        required: false
         type: string
 
 env:
