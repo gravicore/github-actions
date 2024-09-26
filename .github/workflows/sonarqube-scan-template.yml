@@ -42,8 +42,8 @@ jobs:
           PROJECT_KEY=$REPO_NAME
           PROJECT_NAME=$REPO_NAME
                     
-          RESPONSE=$(curl -s -X POST "${{ inputs.SONAR_HOST_URL }}/api/projects/create" \
-              -u "${{ inputs.SONAR_TOKEN }}:" \
+          RESPONSE=$(curl -s -X POST "${{ secrets.SONAR_HOST_URL }}/api/projects/create" \
+              -u "${{ secrets.SONAR_TOKEN }}:" \
               -d "project=${PROJECT_KEY}" \
               -d "name=${PROJECT_NAME}")
 
