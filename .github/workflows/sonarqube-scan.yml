@@ -57,7 +57,7 @@ jobs:
           args: >
             -Dsonar.projectKey=$REPO_NAME
             -Dsonar.sources=.
-            -Dsonar.exclusions=**/*.java
+            -Dsonar.java.binaries=./dist
 
       - name: Display SonarQube Results
         run: |
