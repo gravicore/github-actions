@@ -87,7 +87,7 @@ jobs:
         run: |
           echo "SonarQube scan complete."
           BASE_URL='${{ secrets.SONAR_HOST_URL }}/dashboard?id='
-          FULL_URL=https://www.google.com
+          FULL_URL=$BASE_URL$REPO_NAME
           echo "[Visit SonarQube Results]($FULL_URL)"
           echo "[Visit SonarQube Results]($FULL_URL)" >> $GITHUB_STEP_SUMMARY
 
