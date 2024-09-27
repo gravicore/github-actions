@@ -6,6 +6,9 @@ on:
       REPOSITORY_NAME:        
         required: true
         type: string
+      JAVA_INCLUDE:        
+        required: false
+        type: string
     secrets:
       SONAR_HOST_URL:
         required: true
@@ -47,7 +50,15 @@ jobs:
               echo "Failed to create the project. Response: $RESPONSE"
           fi
 
-      - name: SonarQube Scan
+      - name: Download Build Artifacts
+        if: inputs.JAVA_INCLUDE == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: project-artifacts
+          path: ./dist
+
+      - name: SonarQube Scan With Java
+        if: inputs.JAVA_INCLUDE == 'true'
         uses: sonarsource/sonarqube-scan-action@v2.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -59,6 +70,19 @@ jobs:
             -Dsonar.sources=.
             -Dsonar.java.binaries=./dist
 
+      - name: SonarQube Scan Without Java
+        if: inputs.JAVA_INCLUDE != 'true'
+        uses: sonarsource/sonarqube-scan-action@v2.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=$REPO_NAME
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/*.java
+
       - name: Display SonarQube Results
         run: |
           echo "SonarQube scan complete."
@@ -66,3 +90,5 @@ jobs:
           FULL_URL=https://www.google.com
           echo "[Visit SonarQube Results]($FULL_URL)"
           echo "[Visit SonarQube Results]($FULL_URL)" >> $GITHUB_STEP_SUMMARY
+
+          
