@@ -9,9 +9,10 @@ on:
       JAVA_INCLUDE:        
         required: false
         type: string
-    secrets:
       SONAR_HOST_URL:
         required: true
+        type: string
+    secrets:
       SONAR_TOKEN:
         required: true
 
@@ -37,7 +38,7 @@ jobs:
           PROJECT_KEY=$REPO_NAME
           PROJECT_NAME=$REPO_NAME
                     
-          RESPONSE=$(curl -s -X POST "${{ secrets.SONAR_HOST_URL }}/api/projects/create" \
+          RESPONSE=$(curl -s -X POST "${{ inputs.SONAR_HOST_URL }}/api/projects/create" \
               -u "${{ secrets.SONAR_TOKEN }}:" \
               -d "project=${PROJECT_KEY}" \
               -d "name=${PROJECT_NAME}")
@@ -62,7 +63,7 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@v2.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
         with:
           projectBaseDir: .
           args: >
@@ -75,7 +76,7 @@ jobs:
         uses: sonarsource/sonarqube-scan-action@v2.1.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ inputs.SONAR_HOST_URL }}
         with:
           projectBaseDir: .
           args: >
@@ -86,7 +87,7 @@ jobs:
       - name: Display SonarQube Results
         run: |
           echo "SonarQube scan complete."
-          BASE_URL='${{ secrets.SONAR_HOST_URL }}/dashboard?id='
+          BASE_URL='${{ inputs.SONAR_HOST_URL }}/dashboard?id='
           FULL_URL=$BASE_URL$REPO_NAME
           echo "[Visit SonarQube Results]($FULL_URL)"
           echo "[Visit SonarQube Results]($FULL_URL)" >> $GITHUB_STEP_SUMMARY
