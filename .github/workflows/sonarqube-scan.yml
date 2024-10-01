@@ -10,7 +10,7 @@ on:
         required: false
         type: string
       SONAR_HOST_URL:
-        required: true
+        required: false
         default: https://sonar.dev-srv.celink.cloud
         type: string
     secrets:
