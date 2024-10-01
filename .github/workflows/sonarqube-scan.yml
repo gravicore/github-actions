@@ -28,7 +28,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Command - Set Sonar URL - check the input
+      - name: Command - Set SONAR_HOST_URL - check the input
         run: |
           echo "This is a bash command"
           if [ -n "${{ inputs.SONAR_HOST_URL }}" ]; then
