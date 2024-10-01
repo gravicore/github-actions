@@ -11,6 +11,7 @@ on:
         type: string
       SONAR_HOST_URL:
         required: true
+        default: https://sonar.dev-srv.celink.cloud
         type: string
     secrets:
       SONAR_TOKEN:
