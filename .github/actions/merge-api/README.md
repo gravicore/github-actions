@@ -4,8 +4,7 @@ This action merges an AppSync API into an AppSync Merged API. You can configure 
 
 ### parameters
 
--   **source**: _required_. the **AWS SSM Parameter** or the actual value of the AppSync API to merge
--   **target**: _required_. the **AWS SSM Parameter** or the actual value of the AppSync Merged API to merge into
+-   **results**: _required_. the **AWS SSM Parameter** or the actual values of the AppSync API to merge
 -   **region**: _optional_. defaults to `us-east-1`. the AWS region
 -   **decrypt**: _optional_. defaults to `true`. if the **AWS SSM Parameters** should be decrypted
 -   **access_key_id**: _optional_. if not set, **profile** is mandatory

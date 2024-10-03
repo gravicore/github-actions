@@ -2,10 +2,7 @@
 name: "Merge API"
 description: "Merge an AppSync API into an AppSync Merged API"
 inputs:
-  source:
-    required: true
-    type: string
-  target:
+  results:
     required: true
     type: string
   region:
@@ -35,8 +32,8 @@ inputs:
     type: boolean
     default: false
 outputs:
-  association_id:
-    description: "The id of the AppSync API association"
+  association_ids:
+    description: "The ids of the AppSync API associations"
 
 runs:
   using: "node20"
