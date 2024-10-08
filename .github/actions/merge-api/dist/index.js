@@ -62585,14 +62585,19 @@ async function associateGraphqlApi(sourceId, targetId) {
 
 const main = async () => {
   try {
-    const source = core.getInput("source", { required: true });
-    const target = core.getInput("target", { required: true });
-    const parameters = await getParameters([source, target]);
-    const associationId = await mergeGraphqlApi(
-      parameters[source],
-      parameters[target],
-    );
-    core.setOutput("association_id", associationId);
+    const results = core.getInput("results", { required: true });
+    const json = JSON.parse(results);
+    const associationIds = [];
+    for (const element of json) {
+      const { name, source, target } = element;
+      const parameters = await getParameters([source, target]);
+      const associationId = await mergeGraphqlApi(
+        parameters[source],
+        parameters[target],
+      );
+      associationIds.push({ name, associationId });
+    }
+    core.setOutput("association_ids", JSON.stringify(associationIds));
   } catch (error) {
     core.setFailed(error.message);
     core.debug(error.stack);

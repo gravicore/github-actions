@@ -63,12 +63,9 @@ on:
       JIRA_CLIENT_SECRET:
         required: true
     outputs:
-      source:
-        description: "The source value from the AppSync Merge"
-        value: ${{ jobs.terragrunt-apply.outputs.source }}
-      target:
-        description: "The target value from the AppSync Merge"
-        value: ${{ jobs.terragrunt-apply.outputs.target }}
+      results:
+        description: "The result values for AppSync Merge"
+        value: ${{ jobs.terragrunt-apply.outputs.results }}
 env:
   JIRA_ENV_TYPE: ${{ inputs.JIRA_ENV_TYPE }}
   LAMBDA_MOVE_ARTIFACT_SCRIPT: ${{ inputs.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
@@ -224,8 +221,7 @@ jobs:
     environment:
       name: ${{ inputs.TF_VAR_stage }}
     outputs:
-      source: ${{ steps.appsync_merge.outputs.source }}
-      target: ${{ steps.appsync_merge.outputs.target }}
+      results: ${{ steps.appsync_merge.outputs.results }}
     # END CONFIGURATION
     runs-on: ${{ inputs.RUNNER }}
     steps:
@@ -323,16 +319,23 @@ jobs:
         id: appsync_merge
         if: inputs.APPSYNC_MERGE != ''
         run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          source=$(echo "${{ inputs.APPSYNC_MERGE }}" | yq ".source")
-          target=$(echo "${{ inputs.APPSYNC_MERGE }}" | yq ".target")
-          IFS="=" read -r source_module source_output <<< "$source"
-          IFS="=" read -r target_module target_output <<< "$target"
-          echo "Reading source from ${source}"
-          source_value=$(terragrunt run-all output --terragrunt-working-dir ${source_module} -raw ${source_output} --terragrunt-no-auto-init --terragrunt-non-interactive)
-          echo "Reading target from ${target}"
-          target_value=$(terragrunt run-all output --terragrunt-working-dir ${target_module} -raw ${target_output} --terragrunt-no-auto-init --terragrunt-non-interactive)
-          echo "source=${source_value}"
-          echo "source=${source_value}" >> "$GITHUB_OUTPUT"
-          echo "target=${target_value}"
-          echo "target=${target_value}" >> "$GITHUB_OUTPUT"
+          results="[]"
+          merges=$(echo "${{ inputs.APPSYNC_MERGE }}" | yq ".")
+          for merge in $(echo "${merges}" | yq -o=json | jq -c '.[]'); do
+            name=$(echo "${merge}" | jq -r '.name')
+            source=$(echo "${merge}" | jq -r '.source')
+            target=$(echo "${merge}" | jq -r '.target')
+            IFS="=" read -r source_module source_output <<< "${source}"
+            IFS="=" read -r target_module target_output <<< "${target}"
+            echo "Reading source from ${source}"
+            source_value=$(terragrunt run-all output --terragrunt-working-dir ${source_module} -raw ${source_output} --terragrunt-non-interactive)
+            echo "Reading target from ${target}"
+            target_value=$(terragrunt run-all output --terragrunt-working-dir ${target_module} -raw ${target_output} --terragrunt-non-interactive)
+            echo "source=${source_value}"
+            echo "target=${target_value}"
+            object=$(jq -n --arg name "${name}" --arg source "${source_value}" --arg target "${target_value}" '{name: $name, source: $source, target: $target}')
+            results=$(echo "${results}" | jq --argjson object "${object}" '. += [$object]')
+            echo "------------"
+          done
+          results=$(echo "${results}" | jq -c '.')
+          echo "results=${results}" >> "$GITHUB_OUTPUT"

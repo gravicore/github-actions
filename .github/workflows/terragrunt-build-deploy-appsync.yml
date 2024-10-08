@@ -63,7 +63,7 @@ on:
         required: true
 jobs:
   terragrunt:
-    uses: gravicore/github-actions/.github/workflows/terragrunt-build-deploy.yml@main
+    uses: gravicore/github-actions/.github/workflows/terragrunt-build-deploy.yml@moving-merge-order
     with:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
       JIRA_ENV_TYPE: ${{ inputs.JIRA_ENV_TYPE }}
@@ -88,9 +88,8 @@ jobs:
     environment:
       name: ${{ inputs.TF_VAR_stage }}
     steps:
-      - uses: gravicore/github-actions/.github/actions/merge-api@main
+      - uses: gravicore/github-actions/.github/actions/merge-api@moving-merge-order
         with:
-          source: ${{ needs.terragrunt.outputs.source }}
-          target: ${{ needs.terragrunt.outputs.target }}
+          results: ${{ needs.terragrunt.outputs.results }}
           access_key_id: ${{ (secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID) }}
           secret_access_key: ${{ (secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET) }}
