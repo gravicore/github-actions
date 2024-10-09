@@ -1,0 +1,25 @@
+# action.yml
+name: "Terragrunt Graph"
+description: "Generate a graph from Terragrunt configuration"
+inputs:
+  directory:
+    required: false
+    type: string
+    default: "terragrunt"
+  filename:
+    required: false
+    type: string
+    default: "terragrunt.hcl"
+  exclusion:
+    required: false
+    type: string
+    default: terragrunt/parameters
+outputs:
+  graph:
+    description: "The graph built from the Terragrunt configuration"
+  modules:
+    description: "The modules found in the Terragrunt configuration"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
