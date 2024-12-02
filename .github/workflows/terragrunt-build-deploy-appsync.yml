@@ -44,6 +44,10 @@ on:
       APPSYNC_MERGE:
         required: true
         type: string
+      JIRA_ID_FROM_BRANCH:
+        required: false
+        type: boolean
+        default: false
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
@@ -79,6 +83,7 @@ jobs:
       UPLOAD_ARTIFACT_NAME: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
       ATLASSIAN_URL: ${{ inputs.ATLASSIAN_URL }}
       APPSYNC_MERGE: ${{ inputs.APPSYNC_MERGE }}
+      JIRA_ID_FROM_BRANCH: ${{ inputs.JIRA_ID_FROM_BRANCH }}
     secrets: inherit
 
   appsync:
