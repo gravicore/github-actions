@@ -44,6 +44,10 @@ on:
       APPSYNC_MERGE:
         required: true
         type: string
+      JIRA_ID_FROM_BRANCH:
+        required: false
+        type: boolean
+        default: false
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
