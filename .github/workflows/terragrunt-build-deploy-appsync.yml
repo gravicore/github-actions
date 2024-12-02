@@ -79,6 +79,7 @@ jobs:
       UPLOAD_ARTIFACT_NAME: ${{ inputs.UPLOAD_ARTIFACT_NAME }}
       ATLASSIAN_URL: ${{ inputs.ATLASSIAN_URL }}
       APPSYNC_MERGE: ${{ inputs.APPSYNC_MERGE }}
+      JIRA_ID_FROM_BRANCH: ${{ inputs.JIRA_ID_FROM_BRANCH }}
     secrets: inherit
 
   appsync:
