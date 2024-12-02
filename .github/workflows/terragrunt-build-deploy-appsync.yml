@@ -85,8 +85,6 @@ jobs:
     runs-on: ${{ inputs.RUNNER }}
     name: "AppSync Merge"
     needs: terragrunt
-    environment:
-      name: ${{ inputs.TF_VAR_stage }}
     steps:
       - uses: gravicore/github-actions/.github/actions/merge-api@main
         with:
