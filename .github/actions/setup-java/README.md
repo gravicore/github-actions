@@ -5,6 +5,7 @@ How to declare it:
 ```
 - uses: gravicore/github-actions/.github/actions/setup-java@main
   with:
+    distribution: "temurin" # optional
     username: "github" # optional
     organization: "my-org" #required
     password: ${{ secrets.WRITE_PACKAGES_TOKEN }} # required
