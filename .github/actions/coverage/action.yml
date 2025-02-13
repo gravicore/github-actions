@@ -9,15 +9,13 @@ inputs:
     required: false
     type: string
     default: ""
-  token:
+  packages_token:
     required: false
     type: string
     default: ""
-env:
-  DEFAULT_JAVA_VERSION: 18
-  DEFAULT_JAVA_COMMAND: "mvn clean package -f java"
-  DEFAULT_PYTHON_VERSION: 3.8
-  DEFAULT_PYTHON_COMMAND: 'python -m coverage run -m pytest python/ && coverage json --omit="*test*.py" -o python/coverage.json'
+  slack_token:
+    required: true
+    type: string
 
 runs:
   using: composite
@@ -30,42 +28,57 @@ runs:
       run: |
         sudo apt-get update && \
         sudo apt-get install -y zip unzip jq snap && \
-        sudo snap install yq && \
-        python -m pip install --upgrade pip && \
-        pip install pytest coverage
+        sudo snap install yq
         COVERAGE=$(yq eval ".coverage" -o=json .github/setup${{ inputs.module != '' && format('-{0}', inputs.module) || '' }}.yml | jq -c . | sed 's/\\n/\\\\n/g')
-        JAVA=$(echo ${COVERAGE} | jq '.java != null')
-        PYTHON=$(echo ${COVERAGE} | jq '.python != null')
+        JAVA=$(echo ${COVERAGE} | jq '.tech.java != null')
+        PYTHON=$(echo ${COVERAGE} | jq '.tech.python != null')
         echo "coverage=${COVERAGE}" >> $GITHUB_OUTPUT
         echo "java=${JAVA}" >> $GITHUB_OUTPUT
         echo "python=${PYTHON}" >> $GITHUB_OUTPUT
     - id: java
       if: ${{ steps.setup.outputs.java == 'true' }}
       shell: bash
+      env:
+        DEFAULT_JAVA_VERSION: 18
+        DEFAULT_JAVA_COMMAND: "mvn clean package -f java"
+        DEFAULT_JAVA_MINIMUM: 60
       run: |
-        VERSION="${{ fromJson(steps.setup.outputs.coverage).java.version || env.DEFAULT_JAVA_VERSION }}"
-        COMMAND="${{ fromJson(steps.setup.outputs.coverage).java.command || env.DEFAULT_JAVA_COMMAND }}"
+        VERSION="${{ fromJson(steps.setup.outputs.coverage).tech.java.version || env.DEFAULT_JAVA_VERSION }}"
+        COMMAND="${{ fromJson(steps.setup.outputs.coverage).tech.java.command || env.DEFAULT_JAVA_COMMAND }}"
+        MINIMUM="${{ fromJson(steps.setup.outputs.coverage).tech.java.minimum || env.DEFAULT_JAVA_MINIMUM }}"
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
         echo "command=${COMMAND}" >> $GITHUB_OUTPUT
+        echo "minimum=${MINIMUM}" >> $GITHUB_OUTPUT
     - id: python
       if: ${{ steps.setup.outputs.python == 'true' }}
       shell: bash
+      env:
+        DEFAULT_PYTHON_VERSION: 3.8
+        DEFAULT_PYTHON_COMMAND: 'python -m coverage run -m pytest python/ && coverage json --omit="*test*.py" -o python/coverage.json'
+        DEFAULT_PYTHON_MINIMUM: 60
       run: |
-        VERSION="${{ fromJson(steps.setup.outputs.coverage).python.version || env.DEFAULT_PYTHON_VERSION }}"
-        COMMAND="${{ fromJson(steps.setup.outputs.coverage).python.command || env.DEFAULT_PYTHON_COMMAND }}"
+        VERSION="${{ fromJson(steps.setup.outputs.coverage).tech.python.version || env.DEFAULT_PYTHON_VERSION }}"
+        COMMAND="${{ fromJson(steps.setup.outputs.coverage).tech.python.command || env.DEFAULT_PYTHON_COMMAND }}"
+        MINIMUM="${{ fromJson(steps.setup.outputs.coverage).tech.python.minimum || env.DEFAULT_PYTHON_MINIMUM }}"
         echo "version=${VERSION}" >> $GITHUB_OUTPUT
         echo "command=${COMMAND}" >> $GITHUB_OUTPUT
+        echo "minimum=${MINIMUM}" >> $GITHUB_OUTPUT
     - if: ${{ steps.setup.outputs.java == 'true' }}
       uses: gravicore/github-actions/.github/actions/setup-java@main
       with:
         organization: ${{ github.repository_owner }}
-        password: ${{ inputs.token }}
+        password: ${{ inputs.packages_token }}
         version: ${{ steps.java.outputs.version }}
         ref: ${{ inputs.ref }}
     - if: ${{ steps.setup.outputs.python == 'true' }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ steps.python.outputs.version }}
+    - if: ${{ steps.setup.outputs.python == 'true' }}
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip && \
+        python -m pip install pytest coverage
     - if: ${{ steps.setup.outputs.java == 'true' }}
       shell: bash
       run: |
@@ -74,12 +87,23 @@ runs:
       shell: bash
       run: |
         ${{ steps.python.outputs.command }}
-    - if: ${{ steps.setup.outputs.java == 'true' }}
+    - id: coverage
+      if: ${{ steps.setup.outputs.java == 'true' || steps.setup.outputs.python == 'true' }}
       shell: python
+      env:
+        MINIMUM_JAVA_COVERAGE: "${{ steps.java.outputs.minimum || env.DEFAULT_JAVA_MINIMUM }}"
+        MINIMUM_PYTHON_COVERAGE: "${{ steps.python.outputs.minimum || env.DEFAULT_PYTHON_MINIMUM }}"
+        WITH_JAVA_COVERAGE: "${{ steps.setup.outputs.java == 'true' }}"
+        WITH_PYTHON_COVERAGE: "${{ steps.setup.outputs.python == 'true' }}"
       run: |
         import os
         import csv
         import json
+
+        MINIMUM_JAVA_COVERAGE = int(os.environ.get("MINIMUM_JAVA_COVERAGE") or "70")
+        MINIMUM_PYTHON_COVERAGE = int(os.environ.get("MINIMUM_PYTHON_COVERAGE") or "70")
+        WITH_JAVA_COVERAGE = os.environ.get("WITH_JAVA_COVERAGE") == "true"
+        WITH_PYTHON_COVERAGE = os.environ.get("WITH_PYTHON_COVERAGE") == "true"
 
 
         def get_jacoco_files(base_path="./java"):
@@ -141,13 +165,53 @@ runs:
             return coverage
 
 
+        def is_covered(coverage, minimum_coverage):
+            for element in coverage:
+                if element["coverage"] < minimum_coverage:
+                    return False
+            return True
+
+
+        def set_output(name, value):
+            print(f"SET OUTPUT: {name}={value}")
+            with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+                print(f"{name}={value}", file=fh)
+
+
         def main():
-            java_coverage = parse_java()
-            python_coverage = parse_python()
-            print(json.dumps({
-                "java": java_coverage,
-                "python": python_coverage
-            }, indent=4))
+            result = {}
+            if WITH_JAVA_COVERAGE:
+                java_coverage = parse_java()
+                set_output("java", f"{is_covered(java_coverage, MINIMUM_JAVA_COVERAGE)}".lower())
+                result["java"] = java_coverage
+            if WITH_PYTHON_COVERAGE:
+                python_coverage = parse_python()
+                set_output("python", f"{is_covered(python_coverage, MINIMUM_PYTHON_COVERAGE)}".lower())
+                result["python"] = python_coverage
+            print(json.dumps(result, indent=4))
 
 
         main()
+
+    - if: ${{ steps.setup.outputs.java == 'true' && steps.coverage.outputs.java == 'false' }}
+      shell: bash
+      run: |
+        echo "Java coverage is less than ${{ steps.java.outputs.minimum }}%"
+    - if: ${{ steps.setup.outputs.python == 'true' && steps.coverage.outputs.python == 'false' }}
+      shell: bash
+      run: |
+        echo "Python coverage is less than ${{ steps.python.outputs.minimum }}%"
+
+    - if: ${{ (steps.setup.outputs.java == 'true' && steps.coverage.outputs.java == 'false') || (steps.setup.outputs.python == 'true' && steps.coverage.outputs.python == 'false') }}
+      shell: bash
+      run: |
+        exit 1
+
+    - if: ${{ failure() && (steps.setup.outputs.java == 'true' || steps.setup.outputs.python == 'true') }}
+      uses: slackapi/slack-github-action@v2.0.0
+      with:
+        method: chat.postMessage
+        token: ${{ inputs.slack_token }}
+        payload: |
+          channel: ${{ fromJson(steps.setup.outputs.coverage).channel }}
+          text: ":rotating_light: *COVERAGE:* <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|${{ github.repository }}>"
