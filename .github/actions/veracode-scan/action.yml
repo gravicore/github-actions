@@ -59,7 +59,8 @@ runs:
       shell: bash
       run: |
         sudo apt-get update && \
-        sudo apt-get install -y zip unzip python3 jq snap && \
+        sudo apt-get install -y zip unzip python3-pip jq snap && \
+        pip3 install --user pipenv && \
         sudo snap install yq
         VERACODE=$(yq eval ".veracode" -o=json .github/setup${{ inputs.module != '' && format('-{0}', inputs.module) || '' }}.yml | jq -c . | sed 's/\\n/\\\\n/g')
         JAVA=$(echo ${VERACODE} | jq '.java != null')

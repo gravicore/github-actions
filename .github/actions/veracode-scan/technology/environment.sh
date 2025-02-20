@@ -12,8 +12,9 @@ export IGNORE_DIRS=$(echo ${VALUE} | jq -r ".\"ignore-dirs\" // \"\"" | tr -d '\
 export IGNORE_PATTERNS=$(echo ${VALUE} | jq -r ".\"ignore-patterns\" // \"\"" | tr -d '\n')
 export BUILD_TYPE=$(echo ${VALUE} | jq -r ".\"build-type\" // \"\"" | tr -d '\n')
 export PUBLISH_TYPE=$(echo ${VALUE} | jq -r ".\"publish-type\" // \"\"" | tr -d '\n')
+export DEPENDENCY_FILE=$(echo ${VALUE} | jq -rc ".\"dependency-file\"")
 
-for PARAM in TECHNOLOGY SOURCE_DIR BUILD_COMMAND IGNORE_FILES IGNORE_DIRS IGNORE_PATTERNS BUILD_TYPE PUBLISH_TYPE; do
+for PARAM in TECHNOLOGY SOURCE_DIR BUILD_COMMAND IGNORE_FILES IGNORE_DIRS IGNORE_PATTERNS BUILD_TYPE PUBLISH_TYPE DEPENDENCY_FILE; do
   echo "${PARAM}=${!PARAM}"
 done
 echo "--> [${TECHNOLOGY}] environment set"
