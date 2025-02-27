@@ -17,6 +17,7 @@ for ITEM in $(echo ${DEPENDENCY_FILE} | jq -r "select(. != null) | .[]"); do
 done
 pipenv --python $(which python3) && pipenv lock
 cat Pipfile.lock
+cp Pipfile.lock "${OUTPUT_PATH}/${OUTPUT_FILE}"
 
 ORIGINAL_PATH=$(pwd) \
 && cd "${OUTPUT_PATH}/${OUTPUT_FILE}" \
