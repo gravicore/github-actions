@@ -99,7 +99,6 @@ runs:
           echo "--> [${key}] package created"
         done
         echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
-        ./uber.sh dist
     - if: ${{ steps.execution.outputs.continue == 'true' }}
       uses: actions/upload-artifact@v4
       with:
@@ -113,7 +112,7 @@ runs:
         sandboxname: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
         criticality: ${{ inputs.criticality }}
         exclude: ${{ inputs.exclude }}
-        filepath: uber.jar
+        filepath: dist/
         include: ${{ inputs.include }}
         version: "RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}"
         vid: ${{ inputs.vid }}

@@ -23,3 +23,9 @@ IFS="${OLD_IFS}"
 set +f
 
 echo "--> [${TECHNOLOGY}] output: ${OUTPUT_PATH}"
+
+if [ -n "${UBER_JAR}" ] && [ "${UBER_JAR}" = "true" ]; then
+  echo "--> [${TECHNOLOGY}] creating uber jar..."
+  . "$(dirname "$0")/uber.sh"
+  echo "--> [${TECHNOLOGY}] created uber jar..."
+fi
