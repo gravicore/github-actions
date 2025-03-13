@@ -13,8 +13,9 @@ export IGNORE_PATTERNS=$(echo ${VALUE} | jq -r ".\"ignore-patterns\" // \"\"" | 
 export BUILD_TYPE=$(echo ${VALUE} | jq -r ".\"build-type\" // \"\"" | tr -d '\n')
 export PUBLISH_TYPE=$(echo ${VALUE} | jq -r ".\"publish-type\" // \"\"" | tr -d '\n')
 export DEPENDENCY_FILE=$(echo ${VALUE} | jq -rc ".\"dependency-file\"")
+export UBER_JAR=$(echo ${VALUE} | jq -r ".\"uber-jar\" // \"\"" | tr -d '\n')
 
-for PARAM in TECHNOLOGY SOURCE_DIR BUILD_COMMAND IGNORE_FILES IGNORE_DIRS IGNORE_PATTERNS BUILD_TYPE PUBLISH_TYPE DEPENDENCY_FILE; do
+for PARAM in TECHNOLOGY SOURCE_DIR BUILD_COMMAND IGNORE_FILES IGNORE_DIRS IGNORE_PATTERNS BUILD_TYPE PUBLISH_TYPE DEPENDENCY_FILE UBER_JAR; do
   echo "${PARAM}=${!PARAM}"
 done
 echo "--> [${TECHNOLOGY}] environment set"

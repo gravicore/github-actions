@@ -26,6 +26,9 @@ veracode:
       easter.py,
       isoparser.py
     ignore-patterns: "*test*.py" # optional, comma separated, supports multiline
+    dependency-file: # optional, array of dependency files to create Pipfile.lock for upload
+      - requirements-1.txt
+      - requirements-2.txt
 ```
 
 How to use with **Java**
@@ -39,6 +42,7 @@ veracode:
     build-command: mvn # required, supports multiline
       clean package -f java
     ignore-patterns: "*test*.jar" # optional, comma separated, supports multiline
+    uber-jar: true # optional, uploads just a single file with all classes and dependencies, defaults to false
 ```
 
 How to use with **React**
