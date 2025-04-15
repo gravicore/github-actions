@@ -12,6 +12,13 @@ OUTPUT_FILE=$(jq -r '.output_file' output.json)
 OUTPUT_PATH="dist/${TECHNOLOGY}"
 mkdir -p ${OUTPUT_PATH}
 
+for ITEM in $(echo ${DEPENDENCY_FILE} | jq -r "select(. != null) | .[]"); do
+  pipenv --python $(which python3) && pipenv install -r ${ITEM}
+done
+pipenv --python $(which python3) && pipenv lock
+cat Pipfile.lock
+cp Pipfile.lock "${OUTPUT_PATH}/${OUTPUT_FILE}"
+
 ORIGINAL_PATH=$(pwd) \
 && cd "${OUTPUT_PATH}/${OUTPUT_FILE}" \
 && zip -r "${OUTPUT_FILE}.zip" "." \
