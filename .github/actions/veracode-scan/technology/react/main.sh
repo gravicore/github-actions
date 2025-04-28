@@ -9,6 +9,7 @@ rm -rf ${SOURCE_DIR}/node_modules/
 find ${SOURCE_DIR} -type f \( \
     -name "*.asp" \
     -o -name "*.css" \
+    -o -name "*.scss" \
     -o -name "*.ehtml" \
     -o -name "*.es" \
     -o -name "*.es6" \

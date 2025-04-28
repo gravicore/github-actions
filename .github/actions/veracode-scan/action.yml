@@ -66,10 +66,12 @@ runs:
         JAVA=$(echo ${VERACODE} | jq '.java != null')
         REACT=$(echo ${VERACODE} | jq '.react != null')
         DOTNET=$(echo ${VERACODE} | jq '.dotnet != null')
+        ANGULAR=$(echo ${VERACODE} | jq '.angular != null')
         echo "veracode=${VERACODE}" >> $GITHUB_OUTPUT
         echo "java=${JAVA}" >> $GITHUB_OUTPUT
         echo "react=${REACT}" >> $GITHUB_OUTPUT
         echo "dotnet=${DOTNET}" >> $GITHUB_OUTPUT
+        echo "angular=${ANGULAR}" >> $GITHUB_OUTPUT
     - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.dotnet == 'true' }}
       uses: actions/setup-dotnet@v4
       with:
@@ -85,6 +87,10 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ fromJson(steps.setup.outputs.veracode).react.node-version || env.DEFAULT_NODE_VERSION }}
+    - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.angular == 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ fromJson(steps.setup.outputs.veracode).angular.node-version || env.DEFAULT_NODE_VERSION }}
     - if: ${{ steps.execution.outputs.continue == 'true' }}
       shell: bash
       env:
