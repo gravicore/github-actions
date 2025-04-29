@@ -9,7 +9,9 @@ OUTPUT_PATH="dist/${TECHNOLOGY}"
 mkdir -p ${OUTPUT_PATH}
 
 # Copy the jar files to the output path
-cp ${SOURCE_DIR}/*/target/*.jar ${OUTPUT_PATH}
+find ${SOURCE_DIR} -type d -name target | while read DIR; do
+  find "$DIR" -maxdepth 1 -type f -name "*.jar" -exec cp {} ${OUTPUT_PATH} \;
+done
 
 # Remove files that match the IGNORE_PATTERNS
 OLD_IFS="${IFS}"
