@@ -1,0 +1,112 @@
+# action.yml
+name: "Sonar Scan"
+description: "Scan Sonar Artifacts"
+inputs:
+  project:
+    required: true
+    type: string
+  sonar_token:
+    required: true
+    type: string
+  sonar_host:
+    required: true
+    type: string
+  branch:
+    required: false
+    type: string
+    default: ""
+  stage:
+    required: true
+    type: string
+    default: "dev"
+  module:
+    required: false
+    type: string
+    default: ""
+  maven_token:
+    required: false
+    type: string
+    default: ""
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
+    - id: setup
+      env:
+        DEFAULT_JAVA_PATH: "java"
+        DEFAULT_JAVA_VERSION: 18
+        DEFAULT_JAVA_COMMAND: "mvn clean verify -f ${DEFAULT_JAVA_PATH}"
+        DEFAULT_JAVA_PATTERN: "**/*Test.*"
+        DEFAULT_JAVA_IGNORE_ERRORS: "false"
+        DEFAULT_PYTHON_PATH: "python"
+        DEFAULT_PYTHON_VERSION: "3.9"
+        DEFAULT_PYTHON_COMMAND: "for MOD in ${DEFAULT_PYTHON_PATH}/*/; do [ -d ${MOD} ] && python -m coverage run --source=${MOD} -m unittest discover -s ${MOD} -p ${DEFAULT_PYTHON_PATTERN} || ${DEFAULT_PYTHON_IGNORE_ERRORS}; done; python -m coverage xml"
+        DEFAULT_PYTHON_PATTERN: "test_*.py"
+        DEFAULT_PYTHON_IGNORE_ERRORS: "false"
+      shell: bash
+      run: |
+        sudo apt-get update && \
+        sudo apt-get install -y zip unzip jq snap && \
+        sudo snap install yq
+        SONAR=$(yq eval ".sonar" -o=json .github/setup${{ inputs.module != '' && format('-{0}', inputs.module) || '' }}.yml | jq -c . | sed 's/\\n/\\\\n/g')
+        SONAR=$(${{ github.action_path }}/merge.sh ${SONAR})
+        echo "SONAR=${SONAR}"
+        echo "sonar=${SONAR}" >> $GITHUB_OUTPUT
+        echo "java=$(echo ${SONAR} | jq '.java != null')" >> $GITHUB_OUTPUT
+        echo "python=$(echo ${SONAR} | jq '.python != null')" >> $GITHUB_OUTPUT
+    - if: ${{ steps.setup.outputs.java == 'true' }}
+      uses: gravicore/github-actions/.github/actions/setup-java@main
+      with:
+        organization: ${{ github.repository_owner }}
+        password: ${{ inputs.token }}
+        version: ${{ fromJson(steps.setup.outputs.sonar).java.version }}
+        ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
+    - if: ${{ steps.setup.outputs.python == 'true' }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ fromJson(steps.setup.outputs.sonar).python.version }}
+    - shell: bash
+      env:
+        DEFAULT_PYTHON_REQUIRE: ${{ fromJson(steps.setup.outputs.sonar).python.requirements || '' }}
+        DEFAULT_PYTHON_PATTERN: ${{ fromJson(steps.setup.outputs.sonar).python.pattern }}
+        DEFAULT_PYTHON_PATH: ${{ fromJson(steps.setup.outputs.sonar).python.path }}
+        DEFAULT_PYTHON_IGNORE_ERRORS: ${{ fromJson(steps.setup.outputs.sonar).python.ignore-errors }}
+      run: |
+        set -e
+        if [ "${{ steps.setup.outputs.python }}" = "true" ]; then
+          python -m pip install coverage
+          touch requirements.txt
+          IFS=',' read -r -a items <<< "${DEFAULT_PYTHON_REQUIRE}"
+          for item in "${items[@]}"; do
+            echo "$item" >> requirements.txt
+          done
+          python -m pip install -r requirements.txt
+          ${{ fromJson(steps.setup.outputs.sonar).python.command }} || ${DEFAULT_PYTHON_IGNORE_ERRORS}
+        fi
+    - shell: bash
+      env:
+        DEFAULT_JAVA_PATH: ${{ fromJson(steps.setup.outputs.sonar).java.path }}
+        DEFAULT_JAVA_IGNORE_ERRORS: ${{ fromJson(steps.setup.outputs.sonar).java.ignore-errors }}
+      run: |
+        set -e
+        if [ "${{ steps.setup.outputs.java }}" = "true" ]; then
+          ${{ fromJson(steps.setup.outputs.sonar).java.command }} || ${DEFAULT_JAVA_IGNORE_ERRORS}
+        fi
+    - uses: sonarsource/sonarqube-scan-action@v2.1.0
+      env:
+        SONAR_TOKEN: ${{ inputs.sonar_token }}
+        SONAR_HOST_URL: ${{ inputs.sonar_host }}
+      with:
+        projectBaseDir: .
+        args: >
+          -Dsonar.projectKey="${{ inputs.project }}"
+          -Dsonar.branch.name="${{ inputs.branch }}"
+          -Dsonar.sources="${{ fromJson(steps.setup.outputs.sonar).sources }}"
+          -Dsonar.language="${{ fromJson(steps.setup.outputs.sonar).languages }}"
+          -Dsonar.java.binaries="${{ steps.setup.outputs.java == 'true' && '$(find java -type d -path "*/target/classes" | paste -sd "," -)' || '' }}"
+          -Dsonar.coverage.jacoco.xmlReportPaths="${{ steps.setup.outputs.java == 'true' && '$(find . -name jacoco.xml | paste -sd "," -)' || '' }}"
+          -Dsonar.python.coverage.reportPaths="${{ steps.setup.outputs.java == 'true' && 'coverage.xml' || '' }}"
+          -Dsonar.coverage.exclusions="${{ steps.setup.outputs.java == 'true' && fromJson(steps.setup.outputs.sonar).java.pattern || '' }}"
+
