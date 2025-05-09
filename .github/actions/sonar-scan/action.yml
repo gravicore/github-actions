@@ -3,8 +3,9 @@ name: "Sonar Scan"
 description: "Scan Sonar Artifacts"
 inputs:
   project:
-    required: true
+    required: false
     type: string
+    default: ""
   sonar_token:
     required: true
     type: string
@@ -27,6 +28,14 @@ inputs:
     required: false
     type: string
     default: ""
+  github_token:
+    required: false
+    type: string
+    default: ""
+  pr_comments:
+    required: false
+    type: boolean
+    default: false
 runs:
   using: "composite"
   steps:
@@ -101,7 +110,7 @@ runs:
       with:
         projectBaseDir: .
         args: >
-          -Dsonar.projectKey="${{ inputs.project }}"
+          -Dsonar.projectKey="$(basename ${{ inputs.project || github.repository }})"
           -Dsonar.branch.name="${{ inputs.branch }}"
           -Dsonar.sources="${{ fromJson(steps.setup.outputs.sonar).sources }}"
           -Dsonar.language="${{ fromJson(steps.setup.outputs.sonar).languages }}"
@@ -109,4 +118,23 @@ runs:
           -Dsonar.coverage.jacoco.xmlReportPaths="${{ steps.setup.outputs.java == 'true' && '$(find . -name jacoco.xml | paste -sd "," -)' || '' }}"
           -Dsonar.python.coverage.reportPaths="${{ steps.setup.outputs.java == 'true' && 'coverage.xml' || '' }}"
           -Dsonar.coverage.exclusions="${{ steps.setup.outputs.java == 'true' && fromJson(steps.setup.outputs.sonar).java.pattern || '' }}"
+    - if: ${{ inputs.pr_comments && inputs.github_token != '' }}
+      shell: bash
+      run: |
+        SCAN_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/project_status?projectKey=$(basename ${{ inputs.project || github.repository }})" \
+          -H "Authorization: Basic $(echo -n ${{ inputs.sonar_token }}: | base64)")
+
+        STATUS=$(echo $SCAN_RESULTS | jq -r .projectStatus.status)
+        NEW_COVERAGE=$(echo $SCAN_RESULTS | jq -c '.projectStatus.conditions[] | select(.metricKey == "new_coverage") | .')
+        ERROR_THRESHOLD=$(echo $NEW_COVERAGE | jq -r '.errorThreshold')
+        ACTUAL_VALUE=$(echo $NEW_COVERAGE | jq -r '.actualValue')
+        EMOJI=$([ "${STATUS}" = "ERROR" ] && echo ":x:" || echo ":white_check_mark:")
+
+        curl -s -X POST \
+          -H "Authorization: Bearer ${{ inputs.github_token }}" \
+          -H "Accept: application/vnd.github+json" \
+          -d "{\"body\": \"${EMOJI} **SonarQube Quality Gate**\n_errorThreshold_: \`${ERROR_THRESHOLD}\`\n_actualValue_: \`${ACTUAL_VALUE}\`\"}" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments
+
+        
 
