@@ -121,7 +121,8 @@ runs:
     - if: ${{ inputs.pr_comments && inputs.github_token != '' }}
       shell: bash
       run: |
-        SCAN_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/project_status?projectKey=$(basename ${{ inputs.project || github.repository }})" \
+        PROJECT_KEY="$(basename ${{ inputs.project || github.repository }})"
+        SCAN_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/project_status?projectKey=${PROJECT_KEY}" \
           -H "Authorization: Basic $(echo -n ${{ inputs.sonar_token }}: | base64)")
 
         STATUS=$(echo $SCAN_RESULTS | jq -r .projectStatus.status)
@@ -129,12 +130,10 @@ runs:
         ERROR_THRESHOLD=$(echo $NEW_COVERAGE | jq -r '.errorThreshold')
         ACTUAL_VALUE=$(echo $NEW_COVERAGE | jq -r '.actualValue')
         EMOJI=$([ "${STATUS}" = "ERROR" ] && echo ":x:" || echo ":white_check_mark:")
+        PROJECT_URL="${{ inputs.sonar_host }}dashboard?id=${PROJECT_KEY}"
 
         curl -s -X POST \
           -H "Authorization: Bearer ${{ inputs.github_token }}" \
           -H "Accept: application/vnd.github+json" \
-          -d "{\"body\": \"${EMOJI} **SonarQube Quality Gate**\n_errorThreshold_: \`${ERROR_THRESHOLD}\`\n_actualValue_: \`${ACTUAL_VALUE}\`\"}" \
+          -d "{\"body\": \"${EMOJI} **sonarqube:** [${PROJECT_KEY}](${PROJECT_URL})\n_error threshold_: \`${ERROR_THRESHOLD}\`\n_actual value_: \`${ACTUAL_VALUE}\`\"}" \
           https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments
-
-        
-
