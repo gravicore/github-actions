@@ -92,7 +92,7 @@ runs:
             echo "$item" >> requirements.txt
           done
           python -m pip install -r requirements.txt
-          ${{ fromJson(steps.setup.outputs.sonar).python.command }} || ${DEFAULT_PYTHON_IGNORE_ERRORS}
+          ${{ fromJson(steps.setup.outputs.sonar).python.command || 'echo "ignore-python"' }} || ${DEFAULT_PYTHON_IGNORE_ERRORS}
         fi
     - shell: bash
       env:
@@ -101,7 +101,7 @@ runs:
       run: |
         set -e
         if [ "${{ steps.setup.outputs.java }}" = "true" ]; then
-          ${{ fromJson(steps.setup.outputs.sonar).java.command }} || ${DEFAULT_JAVA_IGNORE_ERRORS}
+          ${{ fromJson(steps.setup.outputs.sonar).java.command || 'echo "ignore-java"' }} || ${DEFAULT_JAVA_IGNORE_ERRORS}
         fi
     - uses: sonarsource/sonarqube-scan-action@v2.1.0
       env:
