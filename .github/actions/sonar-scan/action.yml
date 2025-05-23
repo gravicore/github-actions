@@ -2,25 +2,15 @@
 name: "Sonar Scan"
 description: "Scan Sonar Artifacts"
 inputs:
-  project:
-    required: false
-    type: string
-    default: ""
-  sonar_token:
-    required: true
-    type: string
-  sonar_host:
-    required: true
-    type: string
   branch:
     required: false
     type: string
     default: ""
-  stage:
-    required: true
-    type: string
-    default: "dev"
-  module:
+  github_comments:
+    required: false
+    type: boolean
+    default: false
+  github_token:
     required: false
     type: string
     default: ""
@@ -28,14 +18,40 @@ inputs:
     required: false
     type: string
     default: ""
-  github_token:
+  module:
     required: false
     type: string
     default: ""
-  pr_comments:
+  project:
     required: false
-    type: boolean
-    default: false
+    type: string
+    default: ""
+  sonar_gate:
+    required: false
+    type: string
+    default: "Sonar%20way"
+  sonar_coverage:
+    required: false
+    type: string
+    default: "80"
+  sonar_host:
+    required: true
+    type: string
+  sonar_sqb:
+    required: false
+    type: string
+    default: ""
+  sonar_token: # TODO: deprecate in favor of sonar_squ after changing projects
+    required: false
+    type: string
+    default: ""
+  sonar_squ:
+    required: true
+    type: string
+  stage:
+    required: true
+    type: string
+    default: "dev"
 runs:
   using: "composite"
   steps:
@@ -92,7 +108,7 @@ runs:
             echo "$item" >> requirements.txt
           done
           python -m pip install -r requirements.txt
-          ${{ fromJson(steps.setup.outputs.sonar).python.command }} || ${DEFAULT_PYTHON_IGNORE_ERRORS}
+          ${{ fromJson(steps.setup.outputs.sonar).python.command || 'echo "ignore-python"' }} || ${DEFAULT_PYTHON_IGNORE_ERRORS}
         fi
     - shell: bash
       env:
@@ -101,11 +117,11 @@ runs:
       run: |
         set -e
         if [ "${{ steps.setup.outputs.java }}" = "true" ]; then
-          ${{ fromJson(steps.setup.outputs.sonar).java.command }} || ${DEFAULT_JAVA_IGNORE_ERRORS}
+          ${{ fromJson(steps.setup.outputs.sonar).java.command || 'echo "ignore-java"' }} || ${DEFAULT_JAVA_IGNORE_ERRORS}
         fi
     - uses: sonarsource/sonarqube-scan-action@v2.1.0
       env:
-        SONAR_TOKEN: ${{ inputs.sonar_token }}
+        SONAR_TOKEN: ${{ inputs.sonar_squ || inputs.sonar_token }}
         SONAR_HOST_URL: ${{ inputs.sonar_host }}
       with:
         projectBaseDir: .
@@ -118,22 +134,38 @@ runs:
           -Dsonar.coverage.jacoco.xmlReportPaths="${{ steps.setup.outputs.java == 'true' && '$(find . -name jacoco.xml | paste -sd "," -)' || '' }}"
           -Dsonar.python.coverage.reportPaths="${{ steps.setup.outputs.java == 'true' && 'coverage.xml' || '' }}"
           -Dsonar.coverage.exclusions="${{ steps.setup.outputs.java == 'true' && fromJson(steps.setup.outputs.sonar).java.pattern || '' }}"
-    - if: ${{ inputs.pr_comments && inputs.github_token != '' }}
+    - if: ${{ inputs.github_comments == 'true' && inputs.github_token != '' }}
       shell: bash
       run: |
         PROJECT_KEY="$(basename ${{ inputs.project || github.repository }})"
-        SCAN_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/project_status?projectKey=${PROJECT_KEY}" \
-          -H "Authorization: Basic $(echo -n ${{ inputs.sonar_token }}: | base64)")
+        SONAR_TOKEN="$(echo -n ${{ inputs.sonar_squ || inputs.sonar_token }}: | base64)"
 
-        STATUS=$(echo $SCAN_RESULTS | jq -r .projectStatus.status)
-        NEW_COVERAGE=$(echo $SCAN_RESULTS | jq -c '.projectStatus.conditions[] | select(.metricKey == "new_coverage") | .')
-        ERROR_THRESHOLD=$(echo $NEW_COVERAGE | jq -r '.errorThreshold')
-        ACTUAL_VALUE=$(echo $NEW_COVERAGE | jq -r '.actualValue')
-        EMOJI=$([ "${STATUS}" = "ERROR" ] && echo ":x:" || echo ":white_check_mark:")
-        PROJECT_URL="${{ inputs.sonar_host }}dashboard?id=${PROJECT_KEY}"
+        SCAN_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/project_status?projectKey=${PROJECT_KEY}" \
+          -H "Authorization: Basic ${SONAR_TOKEN}")
+        GATE_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/show?name=$(echo '${{ inputs.sonar_gate }}' | jq -Rr @uri)" \
+          -H "Authorization: Basic ${SONAR_TOKEN}")
+        OVER_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/measures/component?component=${PROJECT_KEY}&metricKeys=coverage" \
+          -H "Authorization: Basic ${SONAR_TOKEN}")
+
+        SCAN_STATUS=$(echo ${SCAN_RESULTS} | jq -r .projectStatus.status)
+        SCAN_NEW_COVERAGE=$(echo ${SCAN_RESULTS} | jq -c '.projectStatus.conditions[] | select(.metricKey == "new_coverage") | .')
+        SCAN_VALUE=$(echo ${SCAN_NEW_COVERAGE} | jq -r '.actualValue')
+        SCAN_EMOJI=$([ "${SCAN_STATUS}" = "ERROR" ] && echo ":x:" || echo ":white_check_mark:")
+
+        GATE_COVERAGE=$(echo ${GATE_RESULTS} | jq -c '.conditions[] // [] | select(.metricKey == "coverage") | .')
+        GATE_NEW_COVERAGE=$(echo ${GATE_RESULTS} | jq -c '.conditions[] // [] | select(.metricKey == "new_coverage") | .')
+        GATE_THRESHOLD=$(echo ${GATE_COVERAGE:-{}} | jq -r '.error // ${{ inputs.sonar_coverage }}')
+        GATE_NEW_THRESHOLD=$(echo ${GATE_NEW_COVERAGE:-{}} | jq -r '.error // ${{ inputs.sonar_coverage }}')
+
+        OVER_COVERAGE=$(echo ${OVER_RESULTS} | jq -c '.component.measures[] | select(.metric == "coverage") | .')
+        OVER_VALUE=$(echo ${OVER_COVERAGE} | jq -r '.value')
+        OVER_STATUS=$(echo ${OVER_VALUE} | jq -r "if (. // empty | tonumber) >= ${GATE_THRESHOLD} then true else false end")
+        OVER_EMOJI=$([ "${OVER_STATUS}" = "false" ] && echo ":x:" || echo ":white_check_mark:")
+
+        SONAR_BADGE=$([ "${{ inputs.sonar_sqb }}" = "" ] && echo "" || echo "[![Quality Gate Status](${{ inputs.sonar_host }}api/project_badges/measure?project=${PROJECT_KEY}&metric=alert_status&token=${{ inputs.sonar_sqb }})](${{ inputs.sonar_host }}dashboard?id=${PROJECT_KEY})")
 
         curl -s -X POST \
           -H "Authorization: Bearer ${{ inputs.github_token }}" \
           -H "Accept: application/vnd.github+json" \
-          -d "{\"body\": \"${EMOJI} **sonarqube:** [${PROJECT_KEY}](${PROJECT_URL})\n_error threshold_: \`${ERROR_THRESHOLD:--}\`\n_actual value_: \`${ACTUAL_VALUE:--}\`\"}" \
+          -d "{\"body\": \"${SONAR_BADGE}\n\n${SCAN_EMOJI} **NEW CODE**\n_threshold_: \`${GATE_NEW_THRESHOLD:-0.0}\`\n_value_: \`${SCAN_VALUE:-0.0}\`\n\n${OVER_EMOJI} **OVERALL**\n_threshold_: \`${GATE_THRESHOLD}\`\n_value_: \`${OVER_VALUE:-0.0}\`\"}" \
           https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments

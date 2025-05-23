@@ -5,15 +5,19 @@ How to declare it:
 ```
 - uses: gravicore/github-actions/.github/actions/sonar-scan@main
   with:
-    project: "my-project" # optional, defaults to the repository name
-    sonar_token: ${{ secrets.SONAR_TOKEN }} # required
-    sonar_host: "https://mysonar" # required
-    stage: dev # optional, used only to decide which git sha should be used
     branch: "my-branch" # optional, use it only if your sonar installation supports branches or the action will throw an error
-    module: "test" # optional, in case you need to support more than one project in the same repository
-    maven_token: ${{ secrets.MAVEN_TOKEN }}$ # optional, used only if your repository builds java and requires private libraries
+    github_comments: false # optional, used to enable scan results comments
     github_token: "gh_abc" # optional. it is required when pr_comments is set to true
-    pr_comments: false # optional, used to enable scan results comments
+    maven_token: ${{ secrets.MAVEN_TOKEN }}$ # optional, used only if your repository builds java and requires private libraries
+    module: "test" # optional, in case you need to support more than one project in the same repository
+    project: "my-project" # optional, defaults to the repository name
+    sonar_coverage: "80" # optional, minimum global coverage to enable warnings
+    sonar_gate: "Sonar%20way" # optional, the quality gate to use
+    sonar_host: "https://mysonar" # required
+    sonar_sqb: "sqb" # optional, project token to display badges
+    sonar_squ: "squ" # optional(for now), same as sonar_token
+    sonar_token: ${{ secrets.SONAR_TOKEN }} # required
+    stage: dev # optional, used only to decide which git sha should be used
 ```
 
 **IMPORTANT!!:** `.github/setup.yml` is required for this action to run, see the following sections.
