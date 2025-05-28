@@ -14,8 +14,6 @@ How to declare it:
     sonar_coverage: "80" # optional, minimum global coverage to enable warnings
     sonar_gate: "Sonar%20way" # optional, the quality gate to use
     sonar_host: "https://mysonar" # required
-    sonar_sqb: "sqb" # optional, project token to display badges
-    sonar_squ: "squ" # optional(for now), same as sonar_token
     sonar_token: ${{ secrets.SONAR_TOKEN }} # required
     stage: dev # optional, used only to decide which git sha should be used
 ```
