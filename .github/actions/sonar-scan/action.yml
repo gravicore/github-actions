@@ -132,7 +132,7 @@ runs:
         PROJECT_KEY="$(basename ${{ inputs.project || github.repository }})"
         SONAR_TOKEN="$(echo -n ${{ inputs.sonar_token }}: | base64)"
 
-        SCAN_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/project_status?projectKey=${PROJECT_KEY}" \
+        SCAN_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/measures/component?component=${PROJECT_KEY}&metricKeys=new_coverage" \
           -H "Authorization: Basic ${SONAR_TOKEN}")
         GATE_RESULTS=$(curl -s "${{ inputs.sonar_host }}api/qualitygates/show?name=$(echo '${{ inputs.sonar_gate }}' | jq -Rr @uri)" \
           -H "Authorization: Basic ${SONAR_TOKEN}")
@@ -141,18 +141,16 @@ runs:
         BADGE_TOKEN=$(curl -s "${{ inputs.sonar_host }}api/project_badges/token?project=${PROJECT_KEY}" \
           -H "Authorization: Basic ${SONAR_TOKEN}" | jq -r .token)
 
-        SCAN_STATUS=$(echo ${SCAN_RESULTS} | jq -r .projectStatus.status)
-        SCAN_NEW_COVERAGE=$(echo ${SCAN_RESULTS} | jq -c '.projectStatus.conditions[] | select(.metricKey == "new_coverage") | .')
-        SCAN_VALUE=$(echo ${SCAN_NEW_COVERAGE} | jq -r '.actualValue')
-        SCAN_EMOJI=$([ "${SCAN_STATUS}" = "ERROR" ] && echo ":bangbang:" || echo ":white_check_mark:")
-
         GATE_COVERAGE=$(echo ${GATE_RESULTS} | jq -c '.conditions[] // [] | select(.metricKey == "coverage") | .')
         GATE_NEW_COVERAGE=$(echo ${GATE_RESULTS} | jq -c '.conditions[] // [] | select(.metricKey == "new_coverage") | .')
         GATE_THRESHOLD=$(echo ${GATE_COVERAGE:-{}} | jq -r '.error // ${{ inputs.sonar_coverage }}')
         GATE_NEW_THRESHOLD=$(echo ${GATE_NEW_COVERAGE:-{}} | jq -r '.error // ${{ inputs.sonar_coverage }}')
 
-        OVER_COVERAGE=$(echo ${OVER_RESULTS} | jq -c '.component.measures[] | select(.metric == "coverage") | .')
-        OVER_VALUE=$(echo ${OVER_COVERAGE} | jq -r '.value')
+        SCAN_VALUE=$(echo ${SCAN_RESULTS} | jq -r '.component.measures[0].value // "0.0"')
+        SCAN_STATUS=$(echo ${OVER_VALUE} | jq -r "if (. // empty | tonumber) >= ${GATE_THRESHOLD} then true else false end")
+        SCAN_EMOJI=$([ "${SCAN_STATUS}" = "false" ] && echo ":bangbang:" || echo ":white_check_mark:")
+
+        OVER_VALUE=$(echo ${OVER_COVERAGE} | jq -r '.component.measures[0].value // "0.0"')
         OVER_STATUS=$(echo ${OVER_VALUE} | jq -r "if (. // empty | tonumber) >= ${GATE_THRESHOLD} then true else false end")
         OVER_EMOJI=$([ "${OVER_STATUS}" = "false" ] && echo ":bangbang:" || echo ":white_check_mark:")
 
