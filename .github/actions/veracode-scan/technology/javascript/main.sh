@@ -8,8 +8,8 @@ rm -rf ${SOURCE_DIR}/node_modules/
 
 find ${SOURCE_DIR} -type f \( \
     -name "*.asp" \
-    -o -name "*.cjs" \
     -o -name "*.css" \
+    -o -name "*.scss" \
     -o -name "*.ehtml" \
     -o -name "*.es" \
     -o -name "*.es6" \
@@ -23,7 +23,6 @@ find ${SOURCE_DIR} -type f \( \
     -o -name "*.json" \
     -o -name "*.jsp" \
     -o -name "*.map" \
-    -o -name "*.mjs" \
     -o -name "*.mustache" \
     -o -name "*.php" \
     -o -name "*.ts" \
