@@ -67,11 +67,13 @@ runs:
         REACT=$(echo ${VERACODE} | jq '.react != null')
         DOTNET=$(echo ${VERACODE} | jq '.dotnet != null')
         ANGULAR=$(echo ${VERACODE} | jq '.angular != null')
+        JAVASCRIPT=$(echo ${VERACODE} | jq '.javascript != null')
         echo "veracode=${VERACODE}" >> $GITHUB_OUTPUT
         echo "java=${JAVA}" >> $GITHUB_OUTPUT
         echo "react=${REACT}" >> $GITHUB_OUTPUT
         echo "dotnet=${DOTNET}" >> $GITHUB_OUTPUT
         echo "angular=${ANGULAR}" >> $GITHUB_OUTPUT
+        echo "javascript=${JAVASCRIPT}" >> $GITHUB_OUTPUT
     - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.dotnet == 'true' }}
       uses: actions/setup-dotnet@v4
       with:
@@ -110,7 +112,7 @@ runs:
       with:
         name: dist
         path: dist/
-    - if: ${{ steps.execution.outputs.continue == 'true' && ((hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') || steps.setup.outputs.dotnet == 'true') && inputs.publish == 'true' }}
+    - if: ${{ steps.execution.outputs.continue == 'true' && ((hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') || steps.setup.outputs.dotnet == 'true' || steps.setup.outputs.javascript == 'true') && inputs.publish == 'true' }}
       uses: veracode/veracode-uploadandscan-action@0.2.6
       with:
         appname: ${{ inputs.appname }}
