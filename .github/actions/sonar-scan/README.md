@@ -48,7 +48,21 @@ sonar:
 
 ```
 
-How to use with **Python** and **Java**
+How to use with **JavaScript**
+
+```
+# .github/setup.yml
+sonar:
+  javascript:
+    path: src # optional, defaults to javascript
+    version: "20" # optional, defaults to 20
+    command: "yarn install && ..." # optional, defaults to 'yarn test'
+    pattern: "**/*.test.*" # optional, defaults to **/*.test.*
+    ignore-errors: false # optional, defaults to false - used to ignore test failures during coverage, will implicate in data loss, so keep the default if possible
+
+```
+
+How to use with **Python**, **Java** and **JavaScript**
 
 ```
 # .github/setup.yml
@@ -56,5 +70,7 @@ sonar:
   python:
     ...
   java:
+    ...
+  javascript:
     ...
 ```
