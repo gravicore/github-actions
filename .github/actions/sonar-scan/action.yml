@@ -62,17 +62,23 @@ runs:
         DEFAULT_PYTHON_COMMAND: "for MOD in ${DEFAULT_PYTHON_PATH}/*/; do [ -d ${MOD} ] && python -m coverage run --source=${MOD} -m unittest discover -s ${MOD} -p ${DEFAULT_PYTHON_PATTERN} || ${DEFAULT_PYTHON_IGNORE_ERRORS}; done; python -m coverage xml"
         DEFAULT_PYTHON_PATTERN: "test_*.py"
         DEFAULT_PYTHON_IGNORE_ERRORS: "false"
+        DEFAULT_JAVASCRIPT_PATH: "javascript"
+        DEFAULT_JAVASCRIPT_VERSION: 20
+        DEFAULT_JAVASCRIPT_COMMAND: "yarn test"
+        DEFAULT_JAVASCRIPT_PATTERN: "**/*.test.*"
+        DEFAULT_JAVASCRIPT_IGNORE_ERRORS: "false"
       shell: bash
       run: |
         sudo apt-get update && \
         sudo apt-get install -y zip unzip jq snap && \
         sudo snap install yq
         SONAR=$(yq eval ".sonar" -o=json .github/setup${{ inputs.module != '' && format('-{0}', inputs.module) || '' }}.yml | jq -c . | sed 's/\\n/\\\\n/g')
-        SONAR=$(${{ github.action_path }}/merge.sh ${SONAR})
+        SONAR=$(${{ github.action_path }}/merge.sh "${SONAR}")
         echo "SONAR=${SONAR}"
         echo "sonar=${SONAR}" >> $GITHUB_OUTPUT
         echo "java=$(echo ${SONAR} | jq '.java != null')" >> $GITHUB_OUTPUT
         echo "python=$(echo ${SONAR} | jq '.python != null')" >> $GITHUB_OUTPUT
+        echo "javascript=$(echo ${SONAR} | jq '.javascript != null')" >> $GITHUB_OUTPUT
     - if: ${{ steps.setup.outputs.java == 'true' }}
       uses: gravicore/github-actions/.github/actions/setup-java@main
       with:
@@ -84,7 +90,12 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ fromJson(steps.setup.outputs.sonar).python.version }}
-    - shell: bash
+    - if: ${{ steps.setup.outputs.javascript == 'true' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ fromJson(steps.setup.outputs.sonar).javascript.version }}
+    - id: python-coverage
+      shell: bash
       env:
         DEFAULT_PYTHON_REQUIRE: ${{ fromJson(steps.setup.outputs.sonar).python.requirements || '' }}
         DEFAULT_PYTHON_PATTERN: ${{ fromJson(steps.setup.outputs.sonar).python.pattern }}
@@ -102,7 +113,8 @@ runs:
           python -m pip install -r requirements.txt
           ${{ fromJson(steps.setup.outputs.sonar).python.command || 'echo "ignore-python"' }} || ${DEFAULT_PYTHON_IGNORE_ERRORS}
         fi
-    - shell: bash
+    - id: java-coverage
+      shell: bash
       env:
         DEFAULT_JAVA_PATH: ${{ fromJson(steps.setup.outputs.sonar).java.path }}
         DEFAULT_JAVA_IGNORE_ERRORS: ${{ fromJson(steps.setup.outputs.sonar).java.ignore-errors }}
@@ -110,6 +122,16 @@ runs:
         set -e
         if [ "${{ steps.setup.outputs.java }}" = "true" ]; then
           ${{ fromJson(steps.setup.outputs.sonar).java.command || 'echo "ignore-java"' }} || ${DEFAULT_JAVA_IGNORE_ERRORS}
+        fi
+    - id: javascript-coverage
+      shell: bash
+      env:
+        DEFAULT_JAVASCRIPT_PATH: ${{ fromJson(steps.setup.outputs.sonar).javascript.path }}
+        DEFAULT_JAVASCRIPT_IGNORE_ERRORS: ${{ fromJson(steps.setup.outputs.sonar).javascript.ignore-errors }}
+      run: |
+        set -e
+        if [ "${{ steps.setup.outputs.javascript }}" = "true" ]; then
+          ${{ fromJson(steps.setup.outputs.sonar).javascript.command || 'echo "ignore-javascript"' }} || ${DEFAULT_JAVASCRIPT_IGNORE_ERRORS}
         fi
     - uses: sonarsource/sonarqube-scan-action@v2.1.0
       env:
@@ -126,6 +148,7 @@ runs:
           -Dsonar.coverage.jacoco.xmlReportPaths="${{ steps.setup.outputs.java == 'true' && '$(find . -name jacoco.xml | paste -sd "," -)' || '' }}"
           -Dsonar.python.coverage.reportPaths="${{ steps.setup.outputs.java == 'true' && 'coverage.xml' || '' }}"
           -Dsonar.coverage.exclusions="${{ steps.setup.outputs.java == 'true' && fromJson(steps.setup.outputs.sonar).java.pattern || '' }}"
+          -Dsonar.javascript.lcov.reportPaths="${{ steps.setup.outputs.javascript == 'true' && 'coverage/lcov.info' || '' }}"
     - if: ${{ inputs.github_comments == 'true' && inputs.github_token != '' }}
       shell: bash
       run: |
