@@ -144,9 +144,9 @@ runs:
           -Dsonar.branch.name="${{ inputs.branch }}"
           -Dsonar.sources="${{ fromJson(steps.setup.outputs.sonar).sources }}"
           -Dsonar.language="${{ fromJson(steps.setup.outputs.sonar).languages }}"
-          -Dsonar.java.binaries="${{ steps.setup.outputs.java == 'true' && '$(find java -type d -path "*/target/classes" | paste -sd "," -)' || '' }}"
+          -Dsonar.java.binaries="${{ steps.setup.outputs.java == 'true' && format('$(find {0} -type d -path "*/target/classes" | paste -sd "," -)', steps.setup.outputs.sonar.java.path) || '' }}"
           -Dsonar.coverage.jacoco.xmlReportPaths="${{ steps.setup.outputs.java == 'true' && '$(find . -name jacoco.xml | paste -sd "," -)' || '' }}"
-          -Dsonar.python.coverage.reportPaths="${{ steps.setup.outputs.java == 'true' && 'coverage.xml' || '' }}"
+          -Dsonar.python.coverage.reportPaths="${{ steps.setup.outputs.python == 'true' && 'coverage.xml' || '' }}"
           -Dsonar.coverage.exclusions="${{ steps.setup.outputs.java == 'true' && fromJson(steps.setup.outputs.sonar).java.pattern || '' }}"
           -Dsonar.javascript.lcov.reportPaths="${{ steps.setup.outputs.javascript == 'true' && 'coverage/lcov.info' || '' }}"
     - if: ${{ inputs.github_comments == 'true' && inputs.github_token != '' }}
