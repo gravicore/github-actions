@@ -149,6 +149,7 @@ runs:
           -Dsonar.python.coverage.reportPaths="${{ steps.setup.outputs.python == 'true' && 'coverage.xml' || '' }}"
           -Dsonar.coverage.exclusions="${{ steps.setup.outputs.java == 'true' && fromJson(steps.setup.outputs.sonar).java.pattern || '' }}"
           -Dsonar.javascript.lcov.reportPaths="${{ steps.setup.outputs.javascript == 'true' && 'coverage/lcov.info' || '' }}"
+          -Dsonar.sourceEncoding=UTF-8
     - if: ${{ inputs.github_comments == 'true' && inputs.github_token != '' }}
       shell: bash
       run: |
