@@ -1,0 +1,26 @@
+name: Main Workflow
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+
+jobs:
+  deploy:
+    name: Deploy Terragrunt
+    uses: ./.github/workflows/terragrunt-deploy.yml
+    with:
+      environment: dev
+      aws_region: us-east-1
+    secrets:
+      aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      aws_session_token: ${{ secrets.AWS_SESSION_TOKEN }}

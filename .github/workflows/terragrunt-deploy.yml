@@ -1,0 +1,188 @@
+name: Terragrunt Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      aws_region:
+        required: false
+        type: string
+        default: "us-east-1"
+      working_directory:
+        required: false
+        type: string
+        default: "terragrunt"
+    secrets:
+      aws_access_key_id:
+        required: true
+      aws_secret_access_key:
+        required: true
+
+jobs:
+  terragrunt-pre-apply:
+    if: (github.event_name == 'issue_comment' && github.event.comment.body == 'ready') || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      modules: ${{ steps.terragrunt-pre-apply.outputs.modules }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gravicore/github-actions/.github/actions/setup-terragrunt@GDEV-418-new-pipeline-for-partial-apply
+      - id: terragrunt-pre-apply
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const path = require("path");
+            const fs = require("fs").promises;
+            const { execSync } = require("child_process");
+            const ROOT_TG = "${{ inputs.working_directory }}";
+
+            function toGraph(output) {
+              const edges = output
+                .split("\n")
+                .map(line => line.trim())
+                .filter(line => line.includes("->"))
+                .map(line => {
+                  const match = line.match(/"(.+?)"\s*->\s*"(.+?)"/);
+                  return match ? {
+                    from: `${ROOT_TG + match[1].split(ROOT_TG)[1]}`,
+                    to: `${ROOT_TG + match[2].split(ROOT_TG)[1]}`,
+                  } : null;
+                })
+                .filter(Boolean);
+              const graph = {};
+              for (const { from, to } of edges) {
+                if (!graph[to]) graph[to] = [];
+                graph[to].push(from);
+              }
+              return graph;
+            }
+
+            function getAllDependents(graph, moduleName, visited = new Set()) {
+              if (visited.has(moduleName)){
+                return;
+              }
+              visited.add(moduleName);
+              const dependents = graph[moduleName] || [];
+              for (const dependent of dependents) {
+                getAllDependents(graph, dependent, visited);
+              }
+              return Array.from(visited);
+            }
+
+            function getAllDependencies(graph, moduleName) {
+              const reversed = {};
+              for (const [parent, dependents] of Object.entries(graph)) {
+                for (const child of dependents) {
+                  if (!reversed[child]) reversed[child] = [];
+                  reversed[child].push(parent);
+                }
+              }
+              const visited = new Set();
+              function visit(module) {
+                const dependencies = reversed[module] || [];
+                for (const dependency of dependencies) {
+                  if (!visited.has(dependency)) {
+                    visited.add(dependency);
+                    visit(dependency);
+                  }
+                }
+              }
+              visit(moduleName);
+              return Array.from(visited);
+            }
+
+            async function getDependencies(modules) {
+              const result = new Set();
+              const output = execSync(
+                `terragrunt graph-dependencies --terragrunt-working-dir ${ROOT_TG}`, 
+                { encoding: "utf-8" });
+              for (const module of modules) {
+                const dirname = path.posix.dirname(module.filename);
+                try {
+                  await fs.access(`${dirname}/terragrunt.hcl`);
+                  const graph = toGraph(output.trim());
+                  const dependents = getAllDependents(graph, dirname);
+                  const dependencies = getAllDependencies(graph, dirname);
+                  dependents.forEach(dirname => result.add(dirname));
+                  dependencies.forEach(dirname => result.add(dirname));
+                } catch (e) {}
+              }
+              return Array.from(result);
+            }
+
+            const isPush = context.eventName === "push";
+            const isPR = context.eventName === "pull_request";
+            const dependencies = [];
+            if (isPush && context.ref === "refs/heads/main") {
+              dependencies.push("*");
+              console.log("Main branch push, deploying all modules.");
+            } else if (isPR) {
+              const labels = context.payload.pull_request?.labels?.map(label => label.name) || [];
+              const hasDeployAll = labels.includes("deploy-all");
+              const hasDeployChanges = labels.includes("deploy-changes");
+              const hasDeployModule = labels.some(label => label.startsWith("deploy-")
+                && label !== "deploy-changes"
+                && label !== "deploy-all");
+
+              if (hasDeployAll || hasDeployChanges || hasDeployModule) {
+                if (hasDeployAll) {
+                  dependencies.push("*");
+                  console.log("Labeled to deploy all modules.");
+                }
+
+                if (hasDeployModule && !hasDeployAll) {
+                  dependencies.push(...(await getDependencies(
+                    labels.filter(label => label.startsWith("deploy-"))
+                      .map(label => ({ filename: `${ROOT_TG}/${label.replace("deploy-", "")}/terragrunt.hcl`})))
+                  ));
+                  console.log(`Labeled to deploy modules: ${dependencies.join(", ")}`);
+                }
+
+                if (hasDeployChanges && !hasDeployAll) {
+                  const files = await github.paginate(
+                    github.rest.pulls.listFiles, {
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: context.payload.pull_request.number,
+                    }, (response) => response.data);
+                  dependencies.push(...(await getDependencies(files)));
+                  console.log(`Labeled to deploy changes: ${dependencies.join(", ")}`);
+                }
+              } else {
+                console.log("No deployment labels found, skipping deployment.");
+              }
+            }
+            console.log(`Deploying: ${dependencies.join(", ")}`);
+            core.setOutput("modules", JSON.stringify(dependencies, null, 0));
+
+  terragrunt-plan:
+    runs-on: ubuntu-latest
+    needs: terragrunt-pre-apply
+    env:
+      TF_VAR_stage: ${{ inputs.environment }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.aws_access_key_id }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.aws_secret_access_key }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: gravicore/github-actions/.github/actions/setup-terragrunt@GDEV-418-new-pipeline-for-partial-apply
+      - id: create-plan
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const modules = JSON.parse('${{ needs.terragrunt-pre-apply.outputs.modules }}');
+            if (!Array.isArray(modules) || !modules.length) {
+              console.log("No modules provided.");
+              return;
+            }
+
+            const command = "terragrunt run-all plan --terragrunt-non-interactive";
+            if (modules.includes("*")) {
+              core.setOutput("command", `${command} --terragrunt-working-dir ${{ inputs.working_directory }}`);
+              return;
+            }
+            const includeDirs = modules.map(m => `--terragrunt-include-dir ${m}`).join(" ");
+            const fullCommand = `${command} ${includeDirs}`;
+            core.setOutput("command", fullCommand);
+      - run: ${{ steps.create-plan.outputs.command }}
