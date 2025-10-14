@@ -117,7 +117,8 @@ async function associateGraphqlApi(sourceId, targetId) {
     }));
     console.log("Association completed with success");
   } catch (error) {
-    if (error.$metadata.httpStatusCode === 400 && error.message === "SourceApiAssociation already exists.") {
+    console.log("Error during association:", error);
+    if (error.$metadata && error.$metadata.httpStatusCode === 400 && error.message === "SourceApiAssociation already exists.") {
       console.log("Existing association found, skipping association");
       return;
     }
