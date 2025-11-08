@@ -1,0 +1,112 @@
+name: Sonar Scan
+
+on:
+  workflow_call:
+    inputs:
+      REPOSITORY_NAME:        
+        required: true
+        type: string
+      JAVA_INCLUDE:        
+        required: false
+        type: string
+      SONAR_HOST_URL:
+        required: false
+        type: string
+      SONAR_HOST_URL_DEFAULT:
+        required: false
+        default: https://sonar.dev-srv.celink.cloud
+        type: string
+    secrets:
+      SONAR_TOKEN:
+        required: true
+
+jobs:
+  sonarqube:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Command - Set SONAR_HOST_URL - check the input
+        run: |
+          echo "This is a bash command"
+          if [ -n "${{ inputs.SONAR_HOST_URL }}" ]; then
+            SONAR_HOST_URL=${{ inputs.SONAR_HOST_URL }}
+            echo $SONAR_HOST_URL
+          else
+            SONAR_HOST_URL=${{ inputs.SONAR_HOST_URL_DEFAULT }}
+            echo $SONAR_HOST_URL
+          fi
+
+          echo "SONAR_HOST_URL=${SONAR_HOST_URL}" >> $GITHUB_ENV
+
+      - name: Command - Set Repository Name
+        run: |
+          echo "This is a bash command"
+          pwd
+          REPO_NAME=$(echo "${{ inputs.REPOSITORY_NAME }}" | cut -d'/' -f2)
+          echo "REPO_NAME=${REPO_NAME}" >> $GITHUB_ENV
+          echo "$REPO_NAME"
+
+      - name: Run Bash Command - Create project in SonarQube
+        run: |
+          echo "$REPO_NAME"
+          PROJECT_KEY=$REPO_NAME
+          PROJECT_NAME=$REPO_NAME
+                    
+          RESPONSE=$(curl -s -X POST "$SONAR_HOST_URL/api/projects/create" \
+              -u "${{ secrets.SONAR_TOKEN }}:" \
+              -d "project=${PROJECT_KEY}" \
+              -d "name=${PROJECT_NAME}")
+
+          if echo "$RESPONSE" | grep -q "A similar key already exists:"; then
+              echo "Project '${PROJECT_KEY}' already exists."
+          elif echo "$RESPONSE" | grep -q "\"project\":{\"key\":\"${PROJECT_KEY}\""; then
+              echo "Project created successfully."
+          else
+              echo "Failed to create the project. Response: $RESPONSE"
+          fi
+
+      - name: Download Build Artifacts
+        if: inputs.JAVA_INCLUDE == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: project-artifacts
+          path: ./dist
+
+      - name: SonarQube Scan With Java
+        if: inputs.JAVA_INCLUDE == 'true'
+        uses: sonarsource/sonarqube-scan-action@v2.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=$REPO_NAME
+            -Dsonar.sources=.
+            -Dsonar.java.binaries=./dist
+
+      - name: SonarQube Scan Without Java
+        if: inputs.JAVA_INCLUDE != 'true'
+        uses: sonarsource/sonarqube-scan-action@v2.1.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.projectKey=$REPO_NAME
+            -Dsonar.sources=.
+            -Dsonar.exclusions=**/*.java
+
+      - name: Display SonarQube Results
+        run: |
+          echo "SonarQube scan complete."
+          BASE_URL='$SONAR_HOST_URL/dashboard?id='
+          FULL_URL=$BASE_URL$REPO_NAME
+          echo "[Visit SonarQube Results]($FULL_URL)"
+          echo "[Visit SonarQube Results]($FULL_URL)" >> $GITHUB_STEP_SUMMARY
+
+          
