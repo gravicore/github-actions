@@ -113,7 +113,7 @@ runs:
         name: dist
         path: dist/
     - if: ${{ steps.execution.outputs.continue == 'true' && ((hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') || steps.setup.outputs.dotnet == 'true' || steps.setup.outputs.javascript == 'true') && inputs.publish == 'true' }}
-      uses: veracode/veracode-uploadandscan-action@0.2.9
+      uses: veracode/veracode-uploadandscan-action@0.2.10
       with:
         appname: ${{ inputs.appname }}
         createsandbox: ${{ inputs.stage == 'prd' && 'false' || 'true' }}
