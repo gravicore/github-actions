@@ -103,7 +103,7 @@ jobs:
         with: 
           distribution: 'temurin'
           java-version: '${{ inputs.JAVA_VERSION }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -116,7 +116,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -160,7 +160,7 @@ jobs:
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -173,7 +173,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -209,7 +209,7 @@ jobs:
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'stg') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -222,7 +222,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ (hashFiles('python/', 'java/', 'react/', 'angular/', 'src/') != '') && ( env.DEPLOYMENT_STAGE == 'prd') }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -263,7 +263,7 @@ jobs:
         with: 
           distribution: 'temurin'
           java-version: '${{ inputs.JAVA_VERSION }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ ( inputs.DEPLOYMENT_STAGE == 'stg' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'
@@ -276,7 +276,7 @@ jobs:
           include: '${{ inputs.VERACODE_INCLUDE }}'
           criticality: '${{ inputs.VERACODE_CRITICALITY }}'
           appname: '${{ env.VERACODE_APP }}'
-      - uses: veracode/veracode-uploadandscan-action@0.2.10 # Run the uploadandscan action. Inputs are described above.
+      - uses: veracode/veracode-uploadandscan-action@0.2.11 # Run the uploadandscan action. Inputs are described above.
         if: ${{ ( inputs.DEPLOYMENT_STAGE == 'prd' ) }}
         with:
           version: 'RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}'

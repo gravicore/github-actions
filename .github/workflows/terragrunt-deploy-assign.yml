@@ -38,19 +38,21 @@ on:
       ATLASSIAN_URL:
         required: true
         type: string
+      CICD_ROLE_ARN:
+        required: true
+        type: string
+      AWS_DEFAULT_REGION:
+        required: true
+        type: string
+      INCLUDE_IAC_SCAN:
+        required: false
+        type: boolean
+        default: false
+      JIRA_ID_FROM_BRANCH:
+        required: false
+        type: boolean
+        default: false  
     secrets:
-      DEV_AWS_ACCESS_KEY_ID:
-        required: false
-      DEV_AWS_ACCESS_KEY_SECRET:
-        required: false
-      STG_AWS_ACCESS_KEY_ID:
-        required: false
-      STG_AWS_ACCESS_KEY_SECRET:
-        required: false
-      PRD_AWS_ACCESS_KEY_ID:
-        required: false
-      PRD_AWS_ACCESS_KEY_SECRET:
-        required: false
       JIRA_CLIENT_ID:
         required: true
       JIRA_CLIENT_SECRET:
@@ -69,17 +71,21 @@ jobs:
     name: "Terragrunt Pre Apply"
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_wrapper: false
           terraform_version: ${{ env.TF_VERSION }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ inputs.CICD_ROLE_ARN }}
+          role-duration-seconds: 3600
+          aws-region: ${{ inputs.AWS_DEFAULT_REGION }}
       - name: Setup Terragrunt
         uses: autero1/action-terragrunt@v3
         with:
@@ -109,16 +115,14 @@ jobs:
     needs: terragrunt-pre-apply
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     # END CONFIGURATION
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '${{ env.NODE_VERSION }}'
       - name: Verify Node.js installation
@@ -133,7 +137,7 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"
       - name: Parse Jira Keys from Commit
         id: jira_keys
-        if: always()
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == false) }}
         uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
@@ -141,13 +145,40 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Format Jira Keys
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == false) }}
         run: |
           JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
           echo "${JIRA_KEYS}" >> .tmp_jira_keys
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
-      - name: Echo Jira Keys
+      - name: Get Branch Name
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == true) }}
         run: |
-          echo "Jira Keys: ${{env.JIRA_KEYS}}"
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "BRANCH_NAME=${{ github.head_ref }}" >> $GITHUB_ENV
+          else
+            echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          fi
+      - name: Extract and Convert JIRA Keys to Uppercase
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == true) }}
+        run: |
+          JIRA_KEYS=$(echo "$BRANCH_NAME" | grep -oEi '^[a-z]+-[0-9]+' || true)
+          if [ -n "$JIRA_KEYS" ]; then
+            # Convert to uppercase
+            JIRA_KEYS_UPPER=$(echo "$JIRA_KEYS" | tr '[:lower:]' '[:upper:]')
+            echo "JIRA_KEYS=$JIRA_KEYS_UPPER" >> $GITHUB_ENV
+            echo "JIRA_KEYS found and set: $JIRA_KEYS_UPPER"
+          else
+            echo "Branch name does not contain a valid JIRA key pattern. Skipping JIRA key extraction."
+            echo "JIRA_KEYS=" >> $GITHUB_ENV
+          fi
+      - name: Print JIRA Keys and Branch Name
+        if: env.JIRA_KEYS != ''
+        run: |
+          echo "JIRA Keys: $JIRA_KEYS"
+      - name: Skip JIRA Keys Extraction
+        if: env.JIRA_KEYS == ''
+        run: |
+          echo "No valid JIRA keys were found. Skipping steps related to JIRA keys."
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         uses: actions/download-artifact@v4
@@ -160,11 +191,11 @@ jobs:
       - name: Setup AWS CLI
         uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          role-to-assume: ${{ inputs.CICD_ROLE_ARN }}
+          role-duration-seconds: 3600
+          aws-region: ${{ inputs.AWS_DEFAULT_REGION }}
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -219,8 +250,6 @@ jobs:
     needs: terragrunt-plan
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     environment:
       name: ${{ inputs.TF_VAR_stage }}
@@ -228,9 +257,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '${{ env.NODE_VERSION }}'
       - name: Verify Node.js installation
@@ -245,7 +274,7 @@ jobs:
           echo "VERSION=$VERSION" >> "$GITHUB_ENV"      
       - name: Parse Jira Keys from Commit
         id: jira_keys
-        if: always()
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == false) }}
         uses: gravicore/jira-extract-issue-keys@master
         with:
           is-pull-request: ${{ github.event_name == 'pull_request' }}
@@ -253,10 +282,40 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Format Jira Keys
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == false) }}
         run: |
           JIRA_KEYS="${{ steps.jira_keys.outputs.jira-keys }}"
           echo "${JIRA_KEYS}" >> .tmp_jira_keys
           echo "JIRA_KEYS=$(grep -o '[A-Z]\+-[0-9]\+' .tmp_jira_keys | tr '\n' ',' | sed 's/,*$//')" >> $GITHUB_ENV
+      - name: Get Branch Name
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == true) }}
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            echo "BRANCH_NAME=${{ github.head_ref }}" >> $GITHUB_ENV
+          else
+            echo "BRANCH_NAME=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          fi
+      - name: Extract and Convert JIRA Keys to Uppercase
+        if: ${{ (inputs.JIRA_ID_FROM_BRANCH == true) }}
+        run: |
+          JIRA_KEYS=$(echo "$BRANCH_NAME" | grep -oEi '^[a-z]+-[0-9]+' || true)
+          if [ -n "$JIRA_KEYS" ]; then
+            # Convert to uppercase
+            JIRA_KEYS_UPPER=$(echo "$JIRA_KEYS" | tr '[:lower:]' '[:upper:]')
+            echo "JIRA_KEYS=$JIRA_KEYS_UPPER" >> $GITHUB_ENV
+            echo "JIRA_KEYS found and set: $JIRA_KEYS_UPPER"
+          else
+            echo "Branch name does not contain a valid JIRA key pattern. Skipping JIRA key extraction."
+            echo "JIRA_KEYS=" >> $GITHUB_ENV
+          fi
+      - name: Print JIRA Keys and Branch Name
+        if: env.JIRA_KEYS != ''
+        run: |
+          echo "JIRA Keys: $JIRA_KEYS"
+      - name: Skip JIRA Keys Extraction
+        if: env.JIRA_KEYS == ''
+        run: |
+          echo "No valid JIRA keys were found. Skipping steps related to JIRA keys."
       - name: Download Project Artifacts
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         uses: actions/download-artifact@v4
@@ -269,11 +328,11 @@ jobs:
       - name: Setup AWS CLI
         uses: unfor19/install-aws-cli-action@v1.0.4
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          role-to-assume: ${{ inputs.CICD_ROLE_ARN }}
+          role-duration-seconds: 3600
+          aws-region: ${{ inputs.AWS_DEFAULT_REGION }}
       - name: Setup Terraform          
         uses: hashicorp/setup-terraform@v3
         with:
