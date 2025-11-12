@@ -48,6 +48,10 @@ on:
         required: false
         type: boolean
         default: false
+      JIRA_ID_FROM_BRANCH:
+        required: false
+        type: boolean
+        default: false  
     secrets:
       JIRA_CLIENT_ID:
         required: true
