@@ -97,6 +97,7 @@ runs:
       shell: bash
       env:
         DEFAULT_MODULE: "${{ inputs.module }}"
+        EXCLUDE_FILES: "${{ inputs.exclude }}"
       run: |
         VERACODE='${{ steps.setup.outputs.veracode }}'
         DIRNAME="${{ github.action_path }}/technology"
@@ -119,7 +120,7 @@ runs:
         createsandbox: ${{ inputs.stage == 'prd' && 'false' || 'true' }}
         sandboxname: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
         criticality: ${{ inputs.criticality }}
-        exclude: ${{ inputs.exclude }}
+        # exclude: ${{ inputs.exclude }}
         filepath: dist/
         include: ${{ inputs.include }}
         version: "RunID:${{ github.run_id }} DateStamp:${{ env.CURRENT_TIME }}"
