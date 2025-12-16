@@ -87,8 +87,6 @@ jobs:
     name: "Terragrunt Pre Apply"
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -127,8 +125,6 @@ jobs:
     needs: terragrunt-pre-apply
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       IGNORE_PATH: ${{inputs.IGNORE_PATH}}
     # END CONFIGURATION
@@ -229,8 +225,6 @@ jobs:
     needs: terragrunt-plan
     env:
       TF_VAR_stage: ${{ inputs.TF_VAR_stage }}
-      AWS_ACCESS_KEY_ID: ${{ ( secrets.DEV_AWS_ACCESS_KEY_ID || secrets.STG_AWS_ACCESS_KEY_ID || secrets.PRD_AWS_ACCESS_KEY_ID ) }}
-      AWS_SECRET_ACCESS_KEY: ${{ ( secrets.DEV_AWS_ACCESS_KEY_SECRET || secrets.STG_AWS_ACCESS_KEY_SECRET || secrets.PRD_AWS_ACCESS_KEY_SECRET ) }}
     environment:
       name: ${{ inputs.TF_VAR_stage }}
     # END CONFIGURATION
