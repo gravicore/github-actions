@@ -47,6 +47,16 @@ on:
       SYNC_FROM:                   ## ./dist/*
         required: false
         type: string
+      CICD_ROLE_ARN:
+        required: true
+        type: string
+      AWS_DEFAULT_REGION:
+        required: true
+        type: string
+      INCLUDE_IAC_SCAN:
+        required: false
+        type: boolean
+        default: false
     secrets:
       DEV_AWS_ACCESS_KEY_ID:
         required: false
@@ -72,7 +82,9 @@ env:
   TF_WORKING_DIR: ${{ inputs.TF_WORKING_DIR }}
   TERRAGRUNT_LOG_LEVEL: ${{ inputs.TERRAGRUNT_LOG_LEVEL }}
   TERRAFORM_PRE_APPLY_SUBFOLDERS: ${{ inputs.TERRAFORM_PRE_APPLY_SUBFOLDERS }}
-
+permissions:
+  id-token: write
+  contents: read
 jobs:
   terragrunt-pre-apply:
     name: "Terragrunt Pre Apply"
@@ -161,11 +173,11 @@ jobs:
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}         
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          role-to-assume: ${{ inputs.CICD_ROLE_ARN }}
+          role-duration-seconds: 3600
+          aws-region: ${{ inputs.AWS_DEFAULT_REGION }} 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
@@ -260,11 +272,11 @@ jobs:
         if: ${{ (inputs.ARTIFACTS_INCLUDE == true) }}
         run: ${{ env.LAMBDA_MOVE_ARTIFACT_SCRIPT }}
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
-          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          role-to-assume: ${{ inputs.CICD_ROLE_ARN }}
+          role-duration-seconds: 3600
+          aws-region: ${{ inputs.AWS_DEFAULT_REGION }} 
       - name: Publish to S3 rds
         if: ${{ (inputs.S3_SYNC_REQUIRED == true) }}
         run: |
