@@ -112,7 +112,11 @@ runs:
       with:
         name: dist
         path: dist/
-    - if: ${{ steps.execution.outputs.continue == 'true' && ((hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') || steps.setup.outputs.dotnet == 'true' || steps.setup.outputs.javascript == 'true') && inputs.publish == 'true' }}
+    - if: ${{ steps.execution.outputs.continue == 'true'
+        && ((hashFiles('python/**', 'java/**', 'react/**', 'angular/**', 'src/**', '.vscode/**') != '')
+            || steps.setup.outputs.dotnet == 'true'
+            || steps.setup.outputs.javascript == 'true')
+        && inputs.publish == 'true' }}
       uses: veracode/veracode-uploadandscan-action@0.2.11
       with:
         appname: ${{ inputs.appname }}
