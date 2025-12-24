@@ -112,7 +112,22 @@ runs:
       with:
         name: dist
         path: dist/
-    - if: ${{ steps.execution.outputs.continue == 'true' && ((hashFiles('python/', 'java/', 'react/', 'angular/', 'src/', '.vscode/') != '') || steps.setup.outputs.dotnet == 'true' || steps.setup.outputs.javascript == 'true') && inputs.publish == 'true' }}
+    - id: detect_sources
+      shell: bash
+      run: |
+        found=false
+        for d in python java react angular src .vscode; do
+          if [ -d "$d" ] && find "$d" -type f -print -quit | grep -q .; then
+            found=true
+            break
+          fi
+        done
+        echo "found=$found" >> "$GITHUB_OUTPUT"
+    - if: ${{ steps.execution.outputs.continue == 'true'
+        && ((steps.detect_sources.outputs.found == 'true')
+            || steps.setup.outputs.dotnet == 'true'
+            || steps.setup.outputs.javascript == 'true')
+        && inputs.publish == 'true' }}
       uses: veracode/veracode-uploadandscan-action@0.2.11
       with:
         appname: ${{ inputs.appname }}
