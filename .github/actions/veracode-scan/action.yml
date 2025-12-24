@@ -113,7 +113,7 @@ runs:
         name: dist
         path: dist/
     - if: ${{ steps.execution.outputs.continue == 'true'
-        && ((hashFiles('python/**', 'java/**', 'react/**', 'angular/**', 'src/**', '.vscode/**') != '')
+        && ((hashFiles('python/**/*\njava/**/*\nreact/**/*\nangular/**/*\nsrc/**/*\n.vscode/**/*') != '')
             || steps.setup.outputs.dotnet == 'true'
             || steps.setup.outputs.javascript == 'true')
         && inputs.publish == 'true' }}
