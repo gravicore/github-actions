@@ -48,6 +48,27 @@ sonar:
 
 ```
 
+How to use with **Java (GraalVM)**
+
+To use GraalVM instead of standard Java, prefix the version with `graalvm-`:
+
+```
+# .github/setup.yml
+sonar:
+  java:
+    path: java # optional, defaults to java
+    version: "graalvm-22" # Uses Oracle GraalVM with Java 22
+    command: "mvn ..." # optional, defaults to 'mvn clean verify -f java'
+    pattern: "**/*Test.*" # optional, defaults to **/*Test.*
+    ignore-errors: false # optional, defaults to false
+
+```
+
+| Version Format | Distribution | Java Version |
+|----------------|--------------|--------------|
+| `version: "22"` | Temurin | 22 |
+| `version: "graalvm-22"` | GraalVM | 22 |
+
 How to use with **JavaScript**
 
 ```

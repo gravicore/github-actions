@@ -29,10 +29,23 @@ runs:
     - uses: actions/checkout@v4
       with:
         ref: ${{ inputs.ref }}
+
+    # Standard Java (Temurin, Corretto, etc.)
     - uses: actions/setup-java@v4
+      if: ${{ inputs.distribution != 'graalvm' }}
       with:
         distribution: ${{ inputs.distribution }}
         java-version: ${{ inputs.version }}
+
+    # GraalVM
+    - uses: graalvm/setup-graalvm@v1
+      if: ${{ inputs.distribution == 'graalvm' }}
+      with:
+        java-version: ${{ inputs.version }}
+        distribution: 'graalvm'
+        github-token: ${{ github.token }}
+
+    # Maven cache and settings (shared by both)
     - uses: actions/cache@v4
       with:
         path: ~/.m2

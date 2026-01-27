@@ -8,6 +8,18 @@ if echo "${SONAR}" | jq -e 'has("java")' > /dev/null; then
   SONAR=$(echo "${SONAR}" | jq -c ".java.command = (if .java.command == \"\" or .java.command == null then \"${DEFAULT_JAVA_COMMAND}\" else .java.command end)")
   SONAR=$(echo "${SONAR}" | jq -c ".java.pattern = (if .java.pattern == \"\" or .java.pattern == null then \"${DEFAULT_JAVA_PATTERN}\" else .java.pattern end)")
   SONAR=$(echo "${SONAR}" | jq -c ".java.[\"ignore-errors\"] = (if .java.[\"ignore-errors\"] == \"\" or .java.[\"ignore-errors\"] == null then \"${DEFAULT_JAVA_IGNORE_ERRORS}\" else .java.[\"ignore-errors\"] end)")
+
+  # Parse version to detect GraalVM prefix (e.g., "graalvm-22" -> distribution: "graalvm", parsed_version: "22")
+  JAVA_VERSION=$(echo "${SONAR}" | jq -r '.java.version')
+  if echo "${JAVA_VERSION}" | grep -q "^graalvm-"; then
+    JAVA_DISTRIBUTION="graalvm"
+    JAVA_PARSED_VERSION=$(echo "${JAVA_VERSION}" | sed 's/^graalvm-//')
+  else
+    JAVA_DISTRIBUTION="temurin"
+    JAVA_PARSED_VERSION="${JAVA_VERSION}"
+  fi
+  SONAR=$(echo "${SONAR}" | jq -c ".java.distribution = \"${JAVA_DISTRIBUTION}\"")
+  SONAR=$(echo "${SONAR}" | jq -c ".java.parsed_version = \"${JAVA_PARSED_VERSION}\"")
 fi
 
 if echo "${SONAR}" | jq -e 'has("python")' > /dev/null; then
