@@ -80,11 +80,12 @@ runs:
         echo "python=$(echo ${SONAR} | jq '.python != null')" >> $GITHUB_OUTPUT
         echo "javascript=$(echo ${SONAR} | jq '.javascript != null')" >> $GITHUB_OUTPUT
     - if: ${{ steps.setup.outputs.java == 'true' }}
-      uses: gravicore/github-actions/.github/actions/setup-java@main
+      uses: gravicore/github-actions/.github/actions/setup-java@GDEV-431-support-graal-vm-with-sonar
       with:
+        distribution: ${{ fromJson(steps.setup.outputs.sonar).java.distribution }}
         organization: ${{ github.repository_owner }}
         password: ${{ inputs.maven_token }}
-        version: ${{ fromJson(steps.setup.outputs.sonar).java.version }}
+        version: ${{ fromJson(steps.setup.outputs.sonar).java.parsed_version }}
         ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
     - if: ${{ steps.setup.outputs.python == 'true' }}
       uses: actions/setup-python@v5
