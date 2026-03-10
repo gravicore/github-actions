@@ -1,0 +1,179 @@
+name: "Snyk SBOM Generator"
+description: "Generate a Snyk SBOM for node, python, maven, gradle, or dotnet projects"
+
+inputs:
+  language:
+    description: "Project language/build type: node | python | maven | gradle | dotnet"
+    required: true
+
+  working-directory:
+    description: "Directory containing the project to scan"
+    required: false
+    default: "."
+
+  output-file:
+    description: "SBOM output file path"
+    required: false
+    default: "sbom.json"
+
+  format:
+    description: "Snyk SBOM format"
+    required: false
+    default: "cyclonedx1.6+json"
+
+  all-projects:
+    description: "Scan all detected manifests"
+    required: false
+    default: "false"
+
+  detection-depth:
+    description: "Optional manifest detection depth"
+    required: false
+    default: ""
+
+  extra-args:
+    description: "Extra args to append to snyk sbom"
+    required: false
+    default: ""
+
+  snyk-version:
+    description: "Snyk CLI version"
+    required: false
+    default: "latest"
+
+  setup-runtime:
+    description: "Whether to install the language runtime/toolchain"
+    required: false
+    default: "true"
+
+  node-version:
+    description: "Node version for node projects"
+    required: false
+    default: "20"
+
+  python-version:
+    description: "Python version for python projects"
+    required: false
+    default: "3.11"
+
+  java-version:
+    description: "Java version for maven/gradle projects"
+    required: false
+    default: "17"
+
+  java-distribution:
+    description: "Java distribution for setup-java"
+    required: false
+    default: "temurin"
+
+  dotnet-version:
+    description: ".NET SDK version for dotnet projects"
+    required: false
+    default: "8.0.x"
+
+outputs:
+  sbom-file:
+    description: "Path to the generated SBOM file"
+    value: ${{ steps.vars.outputs.sbom_file }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Validate language input
+      shell: bash
+      run: |
+        set -euo pipefail
+        case "${{ inputs.language }}" in
+          node|python|maven|gradle|dotnet)
+            echo "language is valid: ${{ inputs.language }}"
+            ;;
+          *)
+            echo "Unsupported language '${{ inputs.language }}'. Use one of: node, python, maven, gradle, dotnet"
+            exit 1
+            ;;
+        esac
+
+    - name: Setup Node
+      if: ${{ inputs.setup-runtime == 'true' && inputs.language == 'node' }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Setup Python
+      if: ${{ inputs.setup-runtime == 'true' && inputs.language == 'python' }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Setup Java
+      if: ${{ inputs.setup-runtime == 'true' && (inputs.language == 'maven' || inputs.language == 'gradle') }}
+      uses: actions/setup-java@v4
+      with:
+        distribution: ${{ inputs.java-distribution }}
+        java-version: ${{ inputs.java-version }}
+
+    - name: Setup .NET
+      if: ${{ inputs.setup-runtime == 'true' && inputs.language == 'dotnet' }}
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: Setup Snyk CLI
+      uses: snyk/actions/setup@master
+      with:
+        snyk-version: ${{ inputs.snyk-version }}
+
+    - name: Resolve output path
+      id: vars
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ "${{ inputs.working-directory }}" == "." ]]; then
+          SBOM_FILE="${{ inputs.output-file }}"
+        else
+          SBOM_FILE="${{ inputs.working-directory }}/${{ inputs.output-file }}"
+        fi
+        echo "sbom_file=${SBOM_FILE}" >> "$GITHUB_OUTPUT"
+
+    - name: Generate SBOM
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        SNYK_TOKEN: ${{ env.SNYK_TOKEN }}
+      run: |
+        set -euo pipefail
+
+        OUTPUT_FILE="${{ inputs.output-file }}"
+
+        CMD=(snyk sbom)
+        CMD+=("--format=${{ inputs.format }}")
+
+        if [[ "${{ inputs.all-projects }}" == "true" ]]; then
+          CMD+=("--all-projects")
+        fi
+
+        if [[ -n "${{ inputs.detection-depth }}" ]]; then
+          CMD+=("--detection-depth=${{ inputs.detection-depth }}")
+        fi
+
+        # Automatically add skip-unresolved for Python projects
+        if [[ "${{ inputs.language }}" == "python" ]]; then
+          CMD+=("--skip-unresolved=true")
+        fi
+
+        if [[ -n "${{ inputs.extra-args }}" ]]; then
+          EXTRA_ARGS=( ${{ inputs.extra-args }} )
+          CMD+=("${EXTRA_ARGS[@]}")
+        fi
+
+        echo "Running: ${CMD[*]}"
+
+        # Print SBOM to logs AND save to file
+        "${CMD[@]}" | tee "$OUTPUT_FILE"
+
+        if [[ ! -f "$OUTPUT_FILE" ]]; then
+          echo "❌ SBOM file was not generated"
+          exit 1
+        fi
+
+        echo "✅ SBOM saved to $OUTPUT_FILE"
