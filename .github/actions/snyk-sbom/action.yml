@@ -155,7 +155,7 @@ runs:
 
         # Automatically add skip-unresolved for Python projects
         if [[ "${{ inputs.language }}" == "python" ]]; then
-          CMD+=("--skip-unresolved")
+          CMD+=("--skip-unresolved=true")
         fi
 
         if [[ -n "${{ inputs.extra-args }}" ]]; then
