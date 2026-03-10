@@ -153,6 +153,11 @@ runs:
           CMD+=("--detection-depth=${{ inputs.detection-depth }}")
         fi
 
+        # Automatically add skip-unresolved for Python projects
+        if [[ "${{ inputs.language }}" == "python" ]]; then
+          CMD+=("--skip-unresolved")
+        fi
+
         if [[ -n "${{ inputs.extra-args }}" ]]; then
           # shellcheck disable=SC2206
           EXTRA_ARGS=( ${{ inputs.extra-args }} )
