@@ -69,13 +69,28 @@ Create one in Snyk and add it to your repository or organization secrets.
 
 # Basic Usage
 
+If this action exists in the same repository as the workflow:
+
 ```yaml
 - name: Generate SBOM
-  uses: your-org/snyk-sbom-action@v1
+  uses: ./.github/actions/snyk-sbom
   env:
     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   with:
     language: node
+    all-projects: true
+```
+
+If calling the action **from another repository in the `gravicore` organization**:
+
+```yaml
+- name: Generate SBOM
+  uses: gravicore/github-actions/.github/actions/snyk-sbom@main
+  env:
+    SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+  with:
+    language: node
+    all-projects: true
 ```
 
 ---
@@ -126,7 +141,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Generate Node SBOM
-        uses: your-org/snyk-sbom-action@v1
+        uses: gravicore/github-actions/.github/actions/snyk-sbom@main
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -146,11 +161,12 @@ jobs:
 
 ```yaml
 - name: Generate Python SBOM
-  uses: your-org/snyk-sbom-action@v1
+  uses: gravicore/github-actions/.github/actions/snyk-sbom@main
   env:
     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   with:
     language: python
+    all-projects: true
     output-file: sbom-python.json
 ```
 
@@ -160,11 +176,12 @@ jobs:
 
 ```yaml
 - name: Generate Maven SBOM
-  uses: your-org/snyk-sbom-action@v1
+  uses: gravicore/github-actions/.github/actions/snyk-sbom@main
   env:
     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   with:
     language: maven
+    all-projects: true
     output-file: sbom-maven.json
 ```
 
@@ -174,11 +191,12 @@ jobs:
 
 ```yaml
 - name: Generate Gradle SBOM
-  uses: your-org/snyk-sbom-action@v1
+  uses: gravicore/github-actions/.github/actions/snyk-sbom@main
   env:
     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   with:
     language: gradle
+    all-projects: true
     output-file: sbom-gradle.json
 ```
 
@@ -188,11 +206,12 @@ jobs:
 
 ```yaml
 - name: Generate .NET SBOM
-  uses: your-org/snyk-sbom-action@v1
+  uses: gravicore/github-actions/.github/actions/snyk-sbom@main
   env:
     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
   with:
     language: dotnet
+    all-projects: true
     output-file: sbom-dotnet.json
 ```
 
