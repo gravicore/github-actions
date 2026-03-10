@@ -143,7 +143,10 @@ runs:
       run: |
         set -euo pipefail
 
-        CMD=(snyk sbom "--format=${{ inputs.format }}" "--json-file-output=${{ inputs.output-file }}")
+        OUTPUT_FILE="${{ inputs.output-file }}"
+
+        CMD=(snyk sbom)
+        CMD+=("--format=${{ inputs.format }}")
 
         if [[ "${{ inputs.all-projects }}" == "true" ]]; then
           CMD+=("--all-projects")
@@ -159,10 +162,18 @@ runs:
         fi
 
         if [[ -n "${{ inputs.extra-args }}" ]]; then
-          # shellcheck disable=SC2206
           EXTRA_ARGS=( ${{ inputs.extra-args }} )
           CMD+=("${EXTRA_ARGS[@]}")
         fi
 
         echo "Running: ${CMD[*]}"
-        "${CMD[@]}"
+
+        # Print SBOM to logs AND save to file
+        "${CMD[@]}" | tee "$OUTPUT_FILE"
+
+        if [[ ! -f "$OUTPUT_FILE" ]]; then
+          echo "❌ SBOM file was not generated"
+          exit 1
+        fi
+
+        echo "✅ SBOM saved to $OUTPUT_FILE"
