@@ -47,7 +47,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
       with:
         ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
     - id: setup
@@ -92,7 +92,7 @@ runs:
       with:
         python-version: ${{ fromJson(steps.setup.outputs.sonar).python.version }}
     - if: ${{ steps.setup.outputs.javascript == 'true' }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ fromJson(steps.setup.outputs.sonar).javascript.version }}
     - id: python-coverage

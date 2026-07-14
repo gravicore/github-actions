@@ -75,7 +75,7 @@ jobs:
     if: inputs.PYTHON_INCLUDE == true
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: create folder dist
         run: mkdir dist
       - name: install zip
@@ -93,7 +93,7 @@ jobs:
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v4 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v5 # Make java accessible on path so the uploadandscan action can run.
         with: 
           distribution: 'temurin'
           java-version: ${{ inputs.JAVA_VERSION }}
@@ -114,14 +114,14 @@ jobs:
     if: inputs.JAVA_INCLUDE == true
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Set up JDK '${{ inputs.JAVA_VERSION }}'
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '${{ inputs.JAVA_VERSION }}'
       - name: Cache Maven
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -136,7 +136,7 @@ jobs:
       - name: Branch Name Var
         run: echo "BRANCH_NAME=${GITHUB_HEAD_REF}"  >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v4 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v5 # Make java accessible on path so the uploadandscan action can run.
         with: 
           distribution: 'temurin'
           java-version: ${{ inputs.JAVA_VERSION }}
@@ -157,8 +157,8 @@ jobs:
     if: inputs.REACT_ANGULAR_INCLUDE == true
     steps:    
       - name: Checkout
-        uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+        uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{inputs.NODE_VERSION}}
       - name: Install Dependencies
@@ -190,7 +190,7 @@ jobs:
     container: mcr.microsoft.com/dotnet/sdk:3.1-alpine
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: "Build"
         run: |
           apk add p7zip
@@ -201,7 +201,7 @@ jobs:
       - name: Gather time stamp
         run:  echo "CURRENT_TIME=$(date +"%y%m%d%H%M%S")" >> $GITHUB_ENV
       - name: Setup Java
-        uses: actions/setup-java@v4 # Make java accessible on path so the uploadandscan action can run.
+        uses: actions/setup-java@v5 # Make java accessible on path so the uploadandscan action can run.
         with: 
           distribution: 'temurin'
           java-version: ${{ inputs.JAVA_VERSION }}
