@@ -51,7 +51,7 @@ runs:
       run: |
         echo "continue=${{ (github.event.workflow_run && github.event.workflow_run.conclusion == 'success') || (!github.event.workflow_run) }}" >> $GITHUB_OUTPUT
     - if: ${{ steps.execution.outputs.continue == 'true' }}
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
     - if: ${{ steps.execution.outputs.continue == 'true' }}
@@ -86,11 +86,11 @@ runs:
         version: ${{ fromJson(steps.setup.outputs.veracode).java.java-version || env.DEFAULT_JAVA_VERSION }}
         ref: ${{ inputs.stage == 'stg' && github.event.workflow_run.head_branch || '' }}
     - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.react == 'true' }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ fromJson(steps.setup.outputs.veracode).react.node-version || env.DEFAULT_NODE_VERSION }}
     - if: ${{ steps.execution.outputs.continue == 'true' && steps.setup.outputs.angular == 'true' }}
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: ${{ fromJson(steps.setup.outputs.veracode).angular.node-version || env.DEFAULT_NODE_VERSION }}
     - if: ${{ steps.execution.outputs.continue == 'true' }}
